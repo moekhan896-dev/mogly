@@ -7,6 +7,7 @@ import { analytics } from "@/lib/analytics";
 export function Paywall({ scanId }: { scanId: string }) {
   const [userId, setUserId] = useState<string | null>(null);
   const [checkingAuth, setCheckingAuth] = useState(true);
+  const [timeLeft, setTimeLeft] = useState<string>("24:00:00");
 
   useEffect(() => {
     const supabase = createClient();
@@ -15,6 +16,31 @@ export function Paywall({ scanId }: { scanId: string }) {
       setCheckingAuth(false);
     });
   }, []);
+
+  // Urgency timer - 24 hour countdown stored in localStorage
+  useEffect(() => {
+    const storageKey = `mogly-timer-start-${scanId}`;
+    let startTime = localStorage.getItem(storageKey);
+    
+    if (!startTime) {
+      startTime = Date.now().toString();
+      localStorage.setItem(storageKey, startTime);
+    }
+
+    const interval = setInterval(() => {
+      const elapsed = Date.now() - parseInt(startTime!);
+      const totalMs = 24 * 60 * 60 * 1000; // 24 hours
+      const remainingMs = Math.max(0, totalMs - elapsed);
+      
+      const hours = Math.floor(remainingMs / (1000 * 60 * 60));
+      const minutes = Math.floor((remainingMs % (1000 * 60 * 60)) / (1000 * 60));
+      const seconds = Math.floor((remainingMs % (1000 * 60)) / 1000);
+      
+      setTimeLeft(`${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`);
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [scanId]);
 
   useEffect(() => {
     if (!checkingAuth) analytics.paywallViewed(scanId);
@@ -79,6 +105,13 @@ export function Paywall({ scanId }: { scanId: string }) {
 
   return (
     <div className="flex flex-col gap-5 animate-fade-up" style={{ animationDelay: "1400ms" }}>
+      {/* Urgency Timer */}
+      <div className="rounded-lg bg-white/[0.05] border border-amber-400/30 px-4 py-3 text-center">
+        <p className="text-xs text-text-muted mb-1">Your personalized plan expires in:</p>
+        <p className="font-mono text-lg font-bold text-amber-400">{timeLeft}</p>
+        <p className="text-xs text-text-muted mt-1">Unlock now to save your results</p>
+      </div>
+
       {/* Lock header */}
       <div className="flex items-center justify-center gap-2 pt-2">
         <span className="text-lg">🔓</span>

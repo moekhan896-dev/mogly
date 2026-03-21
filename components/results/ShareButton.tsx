@@ -14,6 +14,15 @@ interface ShareCardData {
   hydration_score: number;
   evenness_score: number;
   firmness_score: number;
+  score_killer?: string;
+}
+
+function getVerdict(score: number): { text: string; color: string } {
+  if (score >= 90) return { text: "EXCEPTIONAL", color: "#FFD700" };
+  if (score >= 75) return { text: "STRONG", color: "#00E5A0" };
+  if (score >= 60) return { text: "AVERAGE", color: "#FBBF24" };
+  if (score >= 40) return { text: "NEEDS WORK", color: "#F97316" };
+  return { text: "CRITICAL", color: "#EF4444" };
 }
 
 export function ShareButton({ data }: { data: ShareCardData }) {
@@ -54,7 +63,6 @@ export function ShareButton({ data }: { data: ShareCardData }) {
         link.click();
       }
     } catch (err) {
-      // User cancelled share or error
       console.log("Share cancelled or failed:", err);
     } finally {
       setGenerating(false);
@@ -74,16 +82,19 @@ export function ShareButton({ data }: { data: ShareCardData }) {
 
   return (
     <>
-      {/* The share button */}
+      {/* Premium share button */}
       <button
         onClick={handleShare}
         disabled={generating}
-        className="w-full rounded-xl bg-bg-card border border-accent-green/30 py-4 text-sm font-semibold text-accent-green transition-all hover:bg-accent-green/5 disabled:opacity-50"
+        className="w-full rounded-xl py-4 text-base font-bold text-black transition-all disabled:opacity-50 animate-pulse"
+        style={{
+          background: `linear-gradient(135deg, #00E5A0 0%, #00B4D8 100%)`,
+        }}
       >
-        {generating ? "Generating..." : "📤 Share Your Mogly Score"}
+        {generating ? "Generating..." : "📸 Share Your Score Card"}
       </button>
 
-      {/* Hidden share card (rendered off-screen for html-to-image) */}
+      {/* Hidden premium share card */}
       <div
         style={{
           position: "fixed",
@@ -99,135 +110,180 @@ export function ShareButton({ data }: { data: ShareCardData }) {
           style={{
             width: 1080,
             height: 1920,
-            background: "#0A0A12",
+            background: "linear-gradient(135deg, #0A0A12 0%, #12121E 100%)",
             display: "flex",
             flexDirection: "column",
             alignItems: "center",
-            justifyContent: "center",
-            padding: "80px 60px",
+            justifyContent: "space-between",
+            padding: "100px 60px",
             fontFamily: "system-ui, -apple-system, sans-serif",
             position: "relative",
+            border: "3px solid",
+            borderImage: "linear-gradient(135deg, #00E5A0 0%, #FFD700 100%) 1",
           }}
         >
-          {/* Glow behind score */}
+          {/* Background glow */}
           <div
             style={{
               position: "absolute",
-              top: "30%",
+              top: "25%",
               left: "50%",
               transform: "translate(-50%, -50%)",
-              width: 500,
-              height: 500,
+              width: 600,
+              height: 600,
               borderRadius: "50%",
-              background: `radial-gradient(circle, ${mainColor}15 0%, transparent 70%)`,
+              background: `radial-gradient(circle, ${mainColor}20 0%, transparent 70%)`,
+              zIndex: 1,
             }}
           />
 
-          {/* Label */}
+          {/* Content wrapper */}
           <div
             style={{
-              fontSize: 28,
-              fontWeight: 500,
-              color: "#6B7280",
-              letterSpacing: 8,
-              textTransform: "uppercase" as const,
-              marginBottom: 40,
-              fontFamily: "monospace",
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              gap: 60,
+              zIndex: 2,
             }}
           >
-            MOGLY SCORE
+            {/* Label */}
+            <div
+              style={{
+                fontSize: 32,
+                fontWeight: 600,
+                color: "#6B7280",
+                letterSpacing: 8,
+                textTransform: "uppercase" as const,
+                fontFamily: "monospace",
+              }}
+            >
+              Mogly Score
+            </div>
+
+            {/* Big number */}
+            <div
+              style={{
+                fontSize: 280,
+                fontWeight: 900,
+                color: mainColor,
+                lineHeight: 1,
+                textShadow: `0 0 80px ${mainColor}66`,
+              }}
+            >
+              {data.overall_score}
+            </div>
+
+            {/* Percentile */}
+            <div
+              style={{
+                fontSize: 32,
+                color: "#fff",
+                background: "#12121E",
+                borderRadius: 60,
+                padding: "16px 48px",
+                border: "2px solid rgba(255,255,255,0.1)",
+              }}
+            >
+              Top {data.percentile}% of users
+            </div>
+
+            {/* Sub-scores grid with verdicts */}
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "1fr 1fr 1fr",
+                gap: 24,
+                width: "100%",
+              }}
+            >
+              {subs.map((s) => {
+                const verdict = getVerdict(s.val);
+                return (
+                  <div
+                    key={s.label}
+                    style={{
+                      background: "#12121E",
+                      borderRadius: 24,
+                      padding: "32px 24px",
+                      display: "flex",
+                      flexDirection: "column",
+                      alignItems: "center",
+                      gap: 12,
+                      border: "1px solid rgba(255,255,255,0.08)",
+                    }}
+                  >
+                    <div
+                      style={{
+                        fontSize: 22,
+                        color: "#6B7280",
+                        letterSpacing: 4,
+                        fontFamily: "monospace",
+                      }}
+                    >
+                      {s.label}
+                    </div>
+                    <div
+                      style={{
+                        fontSize: 56,
+                        fontWeight: 800,
+                        color: "#fff",
+                      }}
+                    >
+                      {s.val}
+                    </div>
+                    <div
+                      style={{
+                        fontSize: 18,
+                        color: verdict.color,
+                        fontFamily: "monospace",
+                        fontWeight: 700,
+                        letterSpacing: 2,
+                      }}
+                    >
+                      {verdict.text}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
           </div>
 
-          {/* Big number */}
+          {/* CTA + Watermark */}
           <div
             style={{
-              fontSize: 220,
-              fontWeight: 900,
-              color: mainColor,
-              lineHeight: 1,
-              marginBottom: 30,
-              textShadow: `0 0 60px ${mainColor}4D`,
-            }}
-          >
-            {data.overall_score}
-          </div>
-
-          {/* Percentile */}
-          <div
-            style={{
-              fontSize: 30,
-              color: "#6B7280",
-              marginBottom: 80,
-              background: "#12121E",
-              borderRadius: 50,
-              padding: "14px 36px",
-            }}
-          >
-            Top {data.percentile}% of users
-          </div>
-
-          {/* Sub-scores grid */}
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "1fr 1fr 1fr",
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
               gap: 20,
-              width: "100%",
-              maxWidth: 900,
+              zIndex: 2,
             }}
           >
-            {subs.map((s) => (
-              <div
-                key={s.label}
-                style={{
-                  background: "#12121E",
-                  borderRadius: 20,
-                  padding: "28px 20px",
-                  display: "flex",
-                  flexDirection: "column",
-                  alignItems: "center",
-                  gap: 10,
-                  border: "1px solid rgba(255,255,255,0.06)",
-                }}
-              >
-                <div
-                  style={{
-                    fontSize: 20,
-                    color: "#6B7280",
-                    letterSpacing: 4,
-                    fontFamily: "monospace",
-                  }}
-                >
-                  {s.label}
-                </div>
-                <div
-                  style={{
-                    fontSize: 48,
-                    fontWeight: 700,
-                    color: "#fff",
-                  }}
-                >
-                  {s.val}
-                </div>
-              </div>
-            ))}
-          </div>
-
-          {/* Watermark */}
-          <div
-            style={{
-              position: "absolute",
-              bottom: 60,
-              fontSize: 26,
-              color: "#333",
-              letterSpacing: 3,
-              fontFamily: "monospace",
-            }}
-          >
-            mogly.app
+            <div
+              style={{
+                fontSize: 24,
+                color: "#00E5A0",
+                fontWeight: 600,
+                textAlign: "center",
+              }}
+            >
+              What's YOUR skin score?
+            </div>
+            <div
+              style={{
+                fontSize: 32,
+                color: "#FFD700",
+                letterSpacing: 3,
+                fontFamily: "monospace",
+                fontWeight: 800,
+              }}
+            >
+              mogly.app
+            </div>
           </div>
         </div>
       </div>
     </>
   );
 }
+

@@ -67,24 +67,42 @@ export function ResultsClient({ scan, isPremium, history, justUpgraded }: Props)
             <AnimatedScore value={scan.overall_score} color={mainColor} />
           </div>
 
-          {/* Percentile badge */}
+          {/* Percentile badge - Smart Language */}
           <div
             className="mt-4 mb-8 rounded-full bg-bg-card px-4 py-1.5 text-xs text-text-muted animate-fade-up"
             style={{ animationDelay: "200ms" }}
           >
-            Top <span className="font-semibold text-text-primary">{percentile}%</span> of users
+            <span className="font-semibold text-text-primary">
+              {scan.overall_score >= 90 
+                ? `Top ${percentile}% — Exceptional skin 🔥` 
+                : scan.overall_score >= 75 
+                ? `Top ${percentile}% — Better than most ✨` 
+                : scan.overall_score >= 60 
+                ? `Top ${percentile}% — Room to improve 📈` 
+                : scan.overall_score >= 40 
+                ? `Bottom half — Your plan can fix this 💪` 
+                : `Needs attention — Start your fix plan today 🚨`}
+            </span>
           </div>
 
           {/* Sub-scores grid */}
-          <div className="w-full mb-8">
+          <div className="w-full mb-6">
             <SubScoresGrid scores={scores} />
           </div>
 
-          {/* Score Killer */}
+          {/* Share button - moved before score killer */}
+          <div
+            className="w-full mb-8 animate-fade-up"
+            style={{ animationDelay: "750ms" }}
+          >
+            <ShareButton data={scan} />
+          </div>
+
+          {/* Score Killer - Enhanced */}
           {scan.score_killer && (
             <div
               className="w-full animate-fade-up"
-              style={{ animationDelay: "800ms" }}
+              style={{ animationDelay: "850ms" }}
             >
               <div className="h-px w-full bg-white/[0.06] mb-6" />
               <div className="rounded-xl bg-bg-card border border-accent-red/20 px-5 py-4">
@@ -98,52 +116,48 @@ export function ResultsClient({ scan, isPremium, history, justUpgraded }: Props)
                   {scan.score_killer}
                 </p>
                 <p className="text-sm text-amber-400 mb-2">
-                  We detected {scan.conditions?.length || 1} skin concern{scan.conditions?.length !== 1 ? 's' : ''}.
+                  We detected {scan.conditions?.length || 1} skin concern{scan.conditions?.length !== 1 ? 's' : ''} affecting your score.
                 </p>
                 <p className="text-xs text-text-muted">
-                  See what's holding your score back →
+                  Your personalized fix plan is ready →
                 </p>
               </div>
             </div>
           )}
-
-          {/* Share button */}
-          <div
-            className="w-full mt-6 animate-fade-up"
-            style={{ animationDelay: "900ms" }}
-          >
-            <ShareButton data={scan} />
-          </div>
         </div>
 
         {/* ══════════════════════════════════════ */}
-        {/*  TEASER SECTIONS                       */}
+        {/*  PERSONALIZED TEASER SECTIONS          */}
         {/* ══════════════════════════════════════ */}
 
         <div className="mt-6 space-y-4">
+          {/* WHAT WE FOUND - Real conditions */}
           <div className="rounded-xl bg-bg-card p-5">
             <p className="font-mono text-[11px] tracking-[2px] text-text-muted mb-3">WHAT WE FOUND</p>
-            <div className="blur-sm select-none pointer-events-none">
-              <div className="rounded-lg bg-white/[0.03] p-3 mb-2">
-                <span className="text-accent-red text-sm">Moderate</span>
-                <span className="text-white text-sm"> — Inflammatory concerns detected in T-zone region</span>
-              </div>
-              <div className="rounded-lg bg-white/[0.03] p-3 mb-2">
-                <span className="text-amber-400 text-sm">Mild</span>
-                <span className="text-white text-sm"> — Dehydration patterns visible on cheeks</span>
-              </div>
-              <div className="rounded-lg bg-white/[0.03] p-3">
-                <span className="text-amber-400 text-sm">Mild</span>
-                <span className="text-white text-sm"> — Uneven texture in forehead area</span>
-              </div>
+            <div className="blur-sm select-none pointer-events-none space-y-2">
+              {scan.conditions?.slice(0, 3).map((cond: any, idx: number) => {
+                const severityColor = 
+                  cond.severity === 'severe' ? 'text-red-500' :
+                  cond.severity === 'moderate' ? 'text-orange-500' :
+                  'text-amber-400';
+                return (
+                  <div key={idx} className="rounded-lg bg-white/[0.03] p-3">
+                    <span className={`${severityColor} text-sm font-semibold capitalize`}>{cond.severity}</span>
+                    <span className="text-white text-sm ml-2">— {cond.name} {cond.area && `in ${cond.area}`}</span>
+                  </div>
+                );
+              })}
             </div>
             <p className="text-center mt-3 text-accent-gold text-[13px]">🔒 Unlock to see your full diagnosis</p>
           </div>
 
+          {/* YOUR FIX PLAN - Real step 1 */}
           <div className="rounded-xl bg-bg-card p-5">
             <p className="font-mono text-[11px] tracking-[2px] text-text-muted mb-3">YOUR 5-STEP FIX PLAN</p>
             <div className="blur-sm select-none pointer-events-none">
-              <div className="rounded-lg bg-white/[0.03] p-2.5 mb-1.5 text-white text-sm">Step 1: Switch to a gentle sulfate-free cleanser twice daily</div>
+              <div className="rounded-lg bg-white/[0.03] p-2.5 mb-1.5 text-white text-sm">
+                {scan.improvement_plan?.[0]?.action || "Step 1: Personalized routine awaits"}
+              </div>
             </div>
             <p className="p-2.5 text-text-muted text-[13px]">🔒 Step 2: Locked</p>
             <p className="p-2.5 text-text-muted text-[13px]">🔒 Step 3: Locked</p>
@@ -151,7 +165,11 @@ export function ResultsClient({ scan, isPremium, history, justUpgraded }: Props)
             <p className="p-2.5 text-text-muted text-[13px]">🔒 Step 5: Locked</p>
           </div>
 
+          {/* YOUR SCORE VS AVERAGE */}
           <div className="rounded-xl bg-bg-card p-5 text-center">
+            <p className="font-mono text-[11px] tracking-[2px] text-text-muted mb-2">
+              We found {scan.conditions?.length || 0} conditions affecting your score
+            </p>
             <p className="font-mono text-[11px] tracking-[2px] text-text-muted mb-3">YOUR SCORE VS AVERAGE</p>
             <p className="text-white text-base mb-1">You: <span className="text-2xl font-bold">{scan.overall_score}</span> | Average: <span className="text-2xl font-bold">62</span></p>
             <p className={`text-[13px] ${scan.overall_score >= 62 ? 'text-accent-green' : 'text-amber-400'}`}>
