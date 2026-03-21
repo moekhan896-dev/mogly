@@ -11,11 +11,15 @@ const config: Config = {
       colors: {
         "bg-primary": "#0A0A12",
         "bg-card": "#12121E",
-        "accent-green": "#00E5A0",
-        "accent-red": "#FF6B6B",
-        "accent-gold": "#FFD700",
-        "text-primary": "#FFFFFF",
-        "text-muted": "#6B7280",
+        "accent": {
+          green: "#00E5A0",
+          red: "#FF6B6B",
+          gold: "#FFD700",
+        },
+        "text": {
+          primary: "#FFFFFF",
+          muted: "#6B7280",
+        },
         // Score range colors
         "score-gold": "#FFD700",
         "score-green": "#00E5A0",
