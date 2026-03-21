@@ -88,14 +88,20 @@ export function ResultsClient({ scan, isPremium, history, justUpgraded }: Props)
             >
               <div className="h-px w-full bg-white/[0.06] mb-6" />
               <div className="rounded-xl bg-bg-card border border-accent-red/20 px-5 py-4">
-                <div className="flex items-center gap-2 mb-2">
+                <div className="flex items-center gap-2 mb-3">
                   <span className="text-sm">⚠️</span>
                   <span className="font-mono text-[10px] uppercase tracking-[0.15em] text-accent-red">
                     Your #1 Score Killer
                   </span>
                 </div>
-                <p className="text-sm text-accent-red/90 leading-relaxed">
+                <p className="text-sm text-accent-red/90 leading-relaxed mb-3">
                   {scan.score_killer}
+                </p>
+                <p className="text-sm text-amber-400 mb-2">
+                  We detected {scan.conditions?.length || 1} skin concern{scan.conditions?.length !== 1 ? 's' : ''}.
+                </p>
+                <p className="text-xs text-text-muted">
+                  See what's holding your score back →
                 </p>
               </div>
             </div>

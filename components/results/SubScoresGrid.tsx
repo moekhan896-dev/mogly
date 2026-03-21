@@ -11,6 +11,14 @@ const SUB_LABELS = [
   { key: "firmness_score", label: "FIRMNESS" },
 ] as const;
 
+function getVerdict(score: number): { text: string; color: string } {
+  if (score >= 90) return { text: "Exceptional", color: "#FFD700" };
+  if (score >= 75) return { text: "Strong", color: "#00E5A0" };
+  if (score >= 60) return { text: "Average", color: "#FBBF24" };
+  if (score >= 40) return { text: "Needs Work", color: "#F97316" };
+  return { text: "Critical", color: "#FF6B6B" };
+}
+
 export function SubScoresGrid({
   scores,
 }: {
@@ -21,6 +29,7 @@ export function SubScoresGrid({
       {SUB_LABELS.map(({ key, label }, i) => {
         const val = scores[key] ?? 0;
         const color = getScoreColor(val);
+        const verdict = getVerdict(val);
         return (
           <div
             key={key}
@@ -31,6 +40,12 @@ export function SubScoresGrid({
               {label}
             </span>
             <span className="text-2xl font-bold text-text-primary">{val}</span>
+            <span 
+              className="font-mono text-[8px] uppercase tracking-[0.1em]"
+              style={{ color: verdict.color }}
+            >
+              {verdict.text}
+            </span>
             {/* Mini progress bar */}
             <div className="h-[3px] w-full rounded-full bg-white/[0.06] overflow-hidden">
               <div
