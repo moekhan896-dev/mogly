@@ -111,45 +111,46 @@ export function ResultsClient({ scan, isPremium, history, justUpgraded }: Props)
         </div>
 
         {/* ══════════════════════════════════════ */}
-        {/*  TEASER SECTIONS - RAW JSX             */}
+        {/*  TEASER SECTIONS                       */}
         {/* ══════════════════════════════════════ */}
 
-        <div style={{ marginTop: "24px" }}>
-          <div style={{ padding: "20px", background: "#12121E", borderRadius: "12px", marginBottom: "16px" }}>
-            <p style={{ fontFamily: "monospace", fontSize: "11px", letterSpacing: "2px", color: "#6B7280", marginBottom: "12px" }}>WHAT WE FOUND</p>
-            <div style={{ filter: "blur(6px)", userSelect: "none", pointerEvents: "none" }}>
-              <div style={{ padding: "12px", background: "rgba(255,255,255,0.03)", borderRadius: "8px", marginBottom: "8px" }}>
-                <span style={{ color: "#FF6B6B" }}>Moderate</span> <span style={{ color: "#fff" }}>— Inflammatory concerns detected in T-zone region</span>
+        <div className="mt-6 space-y-4">
+          <div className="rounded-xl bg-bg-card p-5">
+            <p className="font-mono text-[11px] tracking-[2px] text-text-muted mb-3">WHAT WE FOUND</p>
+            <div className="blur-sm select-none pointer-events-none">
+              <div className="rounded-lg bg-white/[0.03] p-3 mb-2">
+                <span className="text-accent-red text-sm">Moderate</span>
+                <span className="text-white text-sm"> — Inflammatory concerns detected in T-zone region</span>
               </div>
-              <div style={{ padding: "12px", background: "rgba(255,255,255,0.03)", borderRadius: "8px", marginBottom: "8px" }}>
-                <span style={{ color: "#FBBF24" }}>Mild</span> <span style={{ color: "#fff" }}>— Dehydration patterns visible on cheeks</span>
+              <div className="rounded-lg bg-white/[0.03] p-3 mb-2">
+                <span className="text-amber-400 text-sm">Mild</span>
+                <span className="text-white text-sm"> — Dehydration patterns visible on cheeks</span>
               </div>
-              <div style={{ padding: "12px", background: "rgba(255,255,255,0.03)", borderRadius: "8px" }}>
-                <span style={{ color: "#FBBF24" }}>Mild</span> <span style={{ color: "#fff" }}>— Uneven texture in forehead area</span>
+              <div className="rounded-lg bg-white/[0.03] p-3">
+                <span className="text-amber-400 text-sm">Mild</span>
+                <span className="text-white text-sm"> — Uneven texture in forehead area</span>
               </div>
             </div>
-            <div style={{ textAlign: "center", marginTop: "12px" }}>
-              <span style={{ color: "#FFD700", fontSize: "13px" }}>🔒 Unlock to see your full diagnosis</span>
-            </div>
+            <p className="text-center mt-3 text-accent-gold text-[13px]">🔒 Unlock to see your full diagnosis</p>
           </div>
 
-          <div style={{ padding: "20px", background: "#12121E", borderRadius: "12px", marginBottom: "16px" }}>
-            <p style={{ fontFamily: "monospace", fontSize: "11px", letterSpacing: "2px", color: "#6B7280", marginBottom: "12px" }}>YOUR 5-STEP FIX PLAN</p>
-            <div style={{ filter: "blur(6px)", userSelect: "none", pointerEvents: "none" }}>
-              <div style={{ padding: "10px", background: "rgba(255,255,255,0.03)", borderRadius: "8px", marginBottom: "6px", color: "#fff" }}>Step 1: Switch to a gentle sulfate-free cleanser twice daily</div>
+          <div className="rounded-xl bg-bg-card p-5">
+            <p className="font-mono text-[11px] tracking-[2px] text-text-muted mb-3">YOUR 5-STEP FIX PLAN</p>
+            <div className="blur-sm select-none pointer-events-none">
+              <div className="rounded-lg bg-white/[0.03] p-2.5 mb-1.5 text-white text-sm">Step 1: Switch to a gentle sulfate-free cleanser twice daily</div>
             </div>
-            <div style={{ padding: "10px", color: "#555", fontSize: "13px" }}>🔒 Step 2: Locked</div>
-            <div style={{ padding: "10px", color: "#555", fontSize: "13px" }}>🔒 Step 3: Locked</div>
-            <div style={{ padding: "10px", color: "#555", fontSize: "13px" }}>🔒 Step 4: Locked</div>
-            <div style={{ padding: "10px", color: "#555", fontSize: "13px" }}>🔒 Step 5: Locked</div>
+            <p className="p-2.5 text-text-muted text-[13px]">🔒 Step 2: Locked</p>
+            <p className="p-2.5 text-text-muted text-[13px]">🔒 Step 3: Locked</p>
+            <p className="p-2.5 text-text-muted text-[13px]">🔒 Step 4: Locked</p>
+            <p className="p-2.5 text-text-muted text-[13px]">🔒 Step 5: Locked</p>
           </div>
 
-          <div style={{ padding: "20px", background: "#12121E", borderRadius: "12px", marginBottom: "16px", textAlign: "center" }}>
-            <p style={{ fontFamily: "monospace", fontSize: "11px", letterSpacing: "2px", color: "#6B7280", marginBottom: "12px" }}>YOUR SCORE VS AVERAGE</p>
-            <p style={{ color: "#fff", fontSize: "16px", marginBottom: "4px" }}>You: <span style={{ fontWeight: 700, fontSize: "24px" }}>{scan.overall_score}</span> | Average: <span style={{ fontWeight: 700, fontSize: "24px" }}>62</span></p>
-            <p style={{ color: scan.overall_score >= 62 ? "#00E5A0" : "#FBBF24", fontSize: "13px" }}>
-              {scan.overall_score >= 62 
-                ? "You're above average — unlock your plan to reach 85+" 
+          <div className="rounded-xl bg-bg-card p-5 text-center">
+            <p className="font-mono text-[11px] tracking-[2px] text-text-muted mb-3">YOUR SCORE VS AVERAGE</p>
+            <p className="text-white text-base mb-1">You: <span className="text-2xl font-bold">{scan.overall_score}</span> | Average: <span className="text-2xl font-bold">62</span></p>
+            <p className={`text-[13px] ${scan.overall_score >= 62 ? 'text-accent-green' : 'text-amber-400'}`}>
+              {scan.overall_score >= 62
+                ? "You're above average — unlock your plan to reach 85+"
                 : "Your fix plan can improve your score by 15-20 points in 30 days"}
             </p>
           </div>
