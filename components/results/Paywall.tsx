@@ -78,13 +78,20 @@ export function Paywall({ scanId }: { scanId: string }) {
   };
 
   return (
-    <div className="flex flex-col gap-5 animate-fade-up" style={{ animationDelay: "400ms" }}>
+    <div className="flex flex-col gap-5 animate-fade-up" style={{ animationDelay: "1400ms" }}>
       {/* Lock header */}
       <div className="flex items-center justify-center gap-2 pt-2">
         <span className="text-lg">🔓</span>
         <span className="text-sm font-semibold text-text-primary">
-          Unlock Your Full Skin Report
+          Unlock Your Fix Plan
         </span>
+      </div>
+
+      {/* CTA Subline */}
+      <div className="text-center">
+        <p className="text-xs text-text-muted">
+          Improve 15+ Points in 30 Days
+        </p>
       </div>
 
       {/* Locked items */}
@@ -135,32 +142,61 @@ export function Paywall({ scanId }: { scanId: string }) {
               </span>
             )}
 
-            <div className="flex items-baseline justify-between">
-              <span className="text-sm font-semibold text-text-primary">
-                {plan.label}
-              </span>
-              <span>
-                <span
-                  className={`text-lg font-bold ${
-                    plan.highlighted ? "text-accent-gold" : "text-text-primary"
-                  }`}
-                >
-                  {plan.price}
-                </span>
-                <span className="text-xs text-text-muted">{plan.period}</span>
-              </span>
-            </div>
-            {plan.trial && (
-              <p className="text-xs text-accent-green mt-1">{plan.trial}</p>
+            {/* Label/CTA Text */}
+            {plan.highlighted ? (
+              <div className="flex flex-col gap-2">
+                <p className="text-sm font-bold text-accent-gold leading-tight">
+                  Start Free Trial
+                </p>
+                <p className="text-xs text-text-muted/80">
+                  Improve 15+ Points in 30 Days
+                </p>
+                <div className="flex items-baseline justify-between pt-1">
+                  <span className="text-sm font-semibold text-text-primary">
+                    {plan.label}
+                  </span>
+                  <span>
+                    <span className="text-lg font-bold text-accent-gold">
+                      {plan.price}
+                    </span>
+                    <span className="text-xs text-text-muted">{plan.period}</span>
+                  </span>
+                </div>
+                {plan.trial && (
+                  <p className="text-xs text-accent-green mt-1">{plan.trial}</p>
+                )}
+              </div>
+            ) : (
+              <>
+                <div className="flex items-baseline justify-between">
+                  <span className="text-sm font-semibold text-text-primary">
+                    {plan.label}
+                  </span>
+                  <span>
+                    <span className="text-lg font-bold text-text-primary">
+                      {plan.price}
+                    </span>
+                    <span className="text-xs text-text-muted">{plan.period}</span>
+                  </span>
+                </div>
+                {plan.trial && (
+                  <p className="text-xs text-accent-green mt-1">{plan.trial}</p>
+                )}
+              </>
             )}
           </button>
         ))}
       </div>
 
       {/* Trust text */}
-      <p className="text-center text-[11px] text-text-muted">
-        Cancel anytime&ensp;•&ensp;Instant access&ensp;•&ensp;Secure payment via Stripe
-      </p>
+      <div className="flex flex-col gap-2">
+        <p className="text-center text-xs font-semibold text-accent-green">
+          ✨ Join 2,000+ people improving their skin score
+        </p>
+        <p className="text-center text-[11px] text-text-muted">
+          Cancel anytime&ensp;•&ensp;Instant access&ensp;•&ensp;Secure payment via Stripe
+        </p>
+      </div>
     </div>
   );
 }

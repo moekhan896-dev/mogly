@@ -73,9 +73,19 @@ export default async function ResultsPage({ params, searchParams }: PageProps) {
   }
 
   // Check premium status
-  const isPremium = scan.user_id
-    ? await isSubscribed(scan.user_id)
-    : false;
+  let isPremium = false;
+  if (scan.user_id) {
+    try {
+      isPremium = await isSubscribed(scan.user_id);
+      console.log("DEBUG isSubscribed returned:", isPremium, "for user:", scan.user_id);
+    } catch (error) {
+      // Default to free if subscription check fails
+      console.log("DEBUG isSubscribed error:", error);
+      isPremium = false;
+    }
+  } else {
+    console.log("DEBUG no user_id, isPremium stays false");
+  }
 
   const justUpgraded = searchParams.upgraded === "true";
 

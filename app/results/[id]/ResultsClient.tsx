@@ -18,6 +18,9 @@ interface Props {
 
 export function ResultsClient({ scan, isPremium, history, justUpgraded }: Props) {
   const mainColor = getScoreColor(scan.overall_score);
+  
+  // FIX BUG 2: Calculate percentile as 100 - score
+  const percentile = Math.max(1, 100 - Math.floor(scan.overall_score));
 
   const scores = {
     clarity_score: scan.clarity_score,
@@ -69,7 +72,7 @@ export function ResultsClient({ scan, isPremium, history, justUpgraded }: Props)
             className="mt-4 mb-8 rounded-full bg-bg-card px-4 py-1.5 text-xs text-text-muted animate-fade-up"
             style={{ animationDelay: "200ms" }}
           >
-            Top <span className="font-semibold text-text-primary">{scan.percentile}%</span> of users
+            Top <span className="font-semibold text-text-primary">{percentile}%</span> of users
           </div>
 
           {/* Sub-scores grid */}
@@ -104,6 +107,51 @@ export function ResultsClient({ scan, isPremium, history, justUpgraded }: Props)
             style={{ animationDelay: "900ms" }}
           >
             <ShareButton data={scan} />
+          </div>
+        </div>
+
+        {/* ══════════════════════════════════════ */}
+        {/*  TEASER SECTIONS - RAW JSX             */}
+        {/* ══════════════════════════════════════ */}
+
+        <div style={{ marginTop: "24px" }}>
+          <div style={{ padding: "20px", background: "#12121E", borderRadius: "12px", marginBottom: "16px" }}>
+            <p style={{ fontFamily: "monospace", fontSize: "11px", letterSpacing: "2px", color: "#6B7280", marginBottom: "12px" }}>WHAT WE FOUND</p>
+            <div style={{ filter: "blur(6px)", userSelect: "none", pointerEvents: "none" }}>
+              <div style={{ padding: "12px", background: "rgba(255,255,255,0.03)", borderRadius: "8px", marginBottom: "8px" }}>
+                <span style={{ color: "#FF6B6B" }}>Moderate</span> <span style={{ color: "#fff" }}>— Inflammatory concerns detected in T-zone region</span>
+              </div>
+              <div style={{ padding: "12px", background: "rgba(255,255,255,0.03)", borderRadius: "8px", marginBottom: "8px" }}>
+                <span style={{ color: "#FBBF24" }}>Mild</span> <span style={{ color: "#fff" }}>— Dehydration patterns visible on cheeks</span>
+              </div>
+              <div style={{ padding: "12px", background: "rgba(255,255,255,0.03)", borderRadius: "8px" }}>
+                <span style={{ color: "#FBBF24" }}>Mild</span> <span style={{ color: "#fff" }}>— Uneven texture in forehead area</span>
+              </div>
+            </div>
+            <div style={{ textAlign: "center", marginTop: "12px" }}>
+              <span style={{ color: "#FFD700", fontSize: "13px" }}>🔒 Unlock to see your full diagnosis</span>
+            </div>
+          </div>
+
+          <div style={{ padding: "20px", background: "#12121E", borderRadius: "12px", marginBottom: "16px" }}>
+            <p style={{ fontFamily: "monospace", fontSize: "11px", letterSpacing: "2px", color: "#6B7280", marginBottom: "12px" }}>YOUR 5-STEP FIX PLAN</p>
+            <div style={{ filter: "blur(6px)", userSelect: "none", pointerEvents: "none" }}>
+              <div style={{ padding: "10px", background: "rgba(255,255,255,0.03)", borderRadius: "8px", marginBottom: "6px", color: "#fff" }}>Step 1: Switch to a gentle sulfate-free cleanser twice daily</div>
+            </div>
+            <div style={{ padding: "10px", color: "#555", fontSize: "13px" }}>🔒 Step 2: Locked</div>
+            <div style={{ padding: "10px", color: "#555", fontSize: "13px" }}>🔒 Step 3: Locked</div>
+            <div style={{ padding: "10px", color: "#555", fontSize: "13px" }}>🔒 Step 4: Locked</div>
+            <div style={{ padding: "10px", color: "#555", fontSize: "13px" }}>🔒 Step 5: Locked</div>
+          </div>
+
+          <div style={{ padding: "20px", background: "#12121E", borderRadius: "12px", marginBottom: "16px", textAlign: "center" }}>
+            <p style={{ fontFamily: "monospace", fontSize: "11px", letterSpacing: "2px", color: "#6B7280", marginBottom: "12px" }}>YOUR SCORE VS AVERAGE</p>
+            <p style={{ color: "#fff", fontSize: "16px", marginBottom: "4px" }}>You: <span style={{ fontWeight: 700, fontSize: "24px" }}>{scan.overall_score}</span> | Average: <span style={{ fontWeight: 700, fontSize: "24px" }}>62</span></p>
+            <p style={{ color: scan.overall_score >= 62 ? "#00E5A0" : "#FBBF24", fontSize: "13px" }}>
+              {scan.overall_score >= 62 
+                ? "You're above average — unlock your plan to reach 85+" 
+                : "Your fix plan can improve your score by 15-20 points in 30 days"}
+            </p>
           </div>
         </div>
 

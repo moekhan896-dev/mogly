@@ -158,37 +158,95 @@ function CaptureInner() {
     }, 1200);
 
     try {
-      // 1. Upload to Supabase Storage via our API
-      const formData = new FormData();
-      formData.append("image", capturedBlob, "selfie.jpg");
-      formData.append("concern", concern);
-      formData.append("ageRange", ageRange);
-      formData.append("routineLevel", routineLevel);
-      formData.append("goal", goal);
+      // STEP 1: Compress image to max 800px
+      console.log("📦 Compressing image...");
+      const canvas = canvasRef.current || document.createElement("canvas");
+      const img = new Image();
+      img.src = URL.createObjectURL(capturedBlob);
+      
+      await new Promise((resolve) => {
+        img.onload = resolve;
+      });
 
+      const maxWidth = 800;
+      const ratio = maxWidth / Math.max(img.width, img.height);
+      canvas.width = img.width * ratio;
+      canvas.height = img.height * ratio;
+
+      const ctx = canvas.getContext("2d")!;
+      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+
+      const compressedBlob = await new Promise<Blob>((resolve) => {
+        canvas.toBlob((blob) => resolve(blob!), "image/jpeg", 0.85);
+      });
+
+      console.log(`✅ Compressed: ${capturedBlob.size} → ${compressedBlob.size} bytes`);
+
+      // STEP 2: Upload to Supabase Storage (public bucket)
+      console.log("📤 Uploading to Supabase...");
+      const { createClient } = await import("@supabase/supabase-js");
+      const supabase = createClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+      );
+
+      const timestamp = Date.now();
+      const fileName = `mogly-${timestamp}.jpg`;
+      const { error: uploadError } = await supabase.storage
+        .from("skin-photos")
+        .upload(fileName, compressedBlob, {
+          contentType: "image/jpeg",
+          upsert: false,
+        });
+
+      if (uploadError) {
+        throw new Error(`Upload failed: ${uploadError.message}`);
+      }
+
+      // STEP 3: Get public URL
+      const { data: publicUrlData } = supabase.storage
+        .from("skin-photos")
+        .getPublicUrl(fileName);
+
+      const imageUrl = publicUrlData.publicUrl;
+      console.log("✅ Public URL:", imageUrl);
+
+      // STEP 4: Call /api/analyze with just the URL + metadata
+      console.log("🚀 Calling /api/analyze...");
       const res = await fetch("/api/analyze", {
         method: "POST",
-        body: formData,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          imageUrl,
+          concern,
+          ageRange,
+          routineLevel,
+          goal,
+        }),
       });
 
       clearInterval(interval);
 
-      if (!res.ok) {
-        const msg = await res.text().catch(() => "");
-        throw new Error(msg || "Analysis failed");
-      }
-
       const data = await res.json();
 
-      // Hold on last step briefly then navigate
+      if (!res.ok) {
+        console.error("API Error:", data);
+        // Use the actual error message from the API
+        throw new Error(data.error || `HTTP ${res.status}`);
+      }
+
+      // STEP 5: Navigate to results
+      console.log("✅ Analysis complete");
       setLoadingStep(LOADING_STEPS.length - 1);
       await new Promise((r) => setTimeout(r, 600));
 
-      router.push(`/results/${data.scanId}`);
-    } catch {
+      router.push(`/results/${data.scanId || 1}`);
+    } catch (err) {
       clearInterval(interval);
       setLoading(false);
-      setError("Our AI is taking a moment. Please try again.");
+      const message = err instanceof Error ? err.message : "Unknown error";
+      console.error("❌ Full error:", err);
+      setError(`Failed: ${message}`);
     }
   }, [capturedBlob, concern, ageRange, routineLevel, goal, router]);
 

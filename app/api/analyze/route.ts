@@ -1,347 +1,147 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getOpenAI } from "@/lib/openai";
-import { createClient, SupabaseClient } from "@supabase/supabase-js";
+import { createClient } from "@supabase/supabase-js";
 
-/* -------------------------------------------------- */
-/*  Supabase admin client (service role — bypasses RLS) */
-/* -------------------------------------------------- */
-let _supabase: SupabaseClient | null = null;
-function getSupabase() {
-  if (!_supabase) {
-    _supabase = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.SUPABASE_SERVICE_ROLE_KEY!
-    );
-  }
-  return _supabase;
-}
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!
+);
 
-/* -------------------------------------------------- */
-/*  Simple in-memory rate limiter (3 scans/IP/day)     */
-/* -------------------------------------------------- */
-const rateLimitMap = new Map<string, { count: number; resetAt: number }>();
-
-function checkRateLimit(ip: string): boolean {
-  const now = Date.now();
-  const entry = rateLimitMap.get(ip);
-
-  if (!entry || now > entry.resetAt) {
-    rateLimitMap.set(ip, {
-      count: 1,
-      resetAt: now + 24 * 60 * 60 * 1000, // 24h from now
-    });
-    return true;
-  }
-
-  if (entry.count >= 3) return false;
-
-  entry.count++;
-  return true;
-}
-
-// Clean up stale entries every 10 minutes
-if (typeof globalThis !== "undefined") {
-  const cleanup = () => {
-    const now = Date.now();
-    rateLimitMap.forEach((val, key) => {
-      if (now > val.resetAt) rateLimitMap.delete(key);
-    });
-  };
-  setInterval(cleanup, 10 * 60 * 1000);
-}
-
-/* -------------------------------------------------- */
-/*  System prompt builder                              */
-/* -------------------------------------------------- */
-function buildSystemPrompt(
-  concern: string,
-  ageRange: string,
-  routineLevel: string,
-  goal: string
-): string {
-  return `You are an expert dermatological AI. Analyze the uploaded facial skin photo and return a detailed skin assessment.
-
-The user's primary concern is: ${concern}
-Age range: ${ageRange}
-Current routine level: ${routineLevel}
-Skin goal: ${goal}
-
-Return ONLY valid JSON with NO markdown formatting, NO backticks, NO explanation outside the JSON. Use this exact structure:
-
-{
-  "overall_score": <integer 0-100>,
-  "clarity_score": <integer 0-100>,
-  "glow_score": <integer 0-100>,
-  "texture_score": <integer 0-100>,
-  "hydration_score": <integer 0-100>,
-  "evenness_score": <integer 0-100>,
-  "firmness_score": <integer 0-100>,
-  "percentile": <integer 1-100>,
-  "conditions": [
-    {
-      "name": "<condition name>",
-      "severity": "<mild|moderate|severe>",
-      "area": "<affected area>",
-      "description": "<1 sentence explanation>"
-    }
-  ],
-  "score_killer": "<the single biggest factor hurting the score, 1 sentence>",
-  "improvement_plan": [
-    {
-      "step": <number 1-5>,
-      "action": "<specific actionable step>",
-      "why": "<1 sentence reason>",
-      "impact": "<estimated score improvement>"
-    }
-  ],
-  "product_recs": [
-    {
-      "product": "<product name>",
-      "brand": "<brand>",
-      "why": "<why this product>",
-      "price_range": "<$/$$/$$$>"
-    }
-  ],
-  "dietary_triggers": [
-    {
-      "trigger": "<food category>",
-      "impact": "<how it affects skin>",
-      "recommendation": "<what to do>"
-    }
-  ]
-}
-
-Scoring guide: 90-100 exceptional, 75-89 good with minor concerns, 60-74 average with noticeable issues, 40-59 below average, below 40 significant issues. Be honest but constructive. Give specific, actionable advice personalized to their concern and goal.`;
-}
-
-/* -------------------------------------------------- */
-/*  Parse AI response — strip markdown fences if any   */
-/* -------------------------------------------------- */
-function parseAIResponse(raw: string): Record<string, unknown> | null {
-  let cleaned = raw.trim();
-  // Strip ```json ... ``` or ``` ... ```
-  if (cleaned.startsWith("```")) {
-    cleaned = cleaned.replace(/^```(?:json)?\s*/, "").replace(/\s*```$/, "");
-  }
-  try {
-    return JSON.parse(cleaned);
-  } catch {
-    return null;
-  }
-}
-
-/* -------------------------------------------------- */
-/*  POST /api/analyze                                  */
-/* -------------------------------------------------- */
 export async function POST(req: NextRequest) {
   try {
-    /* ── Rate limit ── */
-    const ip =
-      req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
-      req.headers.get("x-real-ip") ||
-      "unknown";
+    const body = await req.json();
+    const { imageUrl, concern, ageRange, routineLevel, goal } = body;
+    console.log("📨 Received request, imageUrl:", imageUrl);
 
-    if (!checkRateLimit(ip)) {
+    if (!imageUrl) {
       return NextResponse.json(
-        {
-          error:
-            "You've used your free scans today. Create an account for unlimited access.",
-        },
-        { status: 429 }
-      );
-    }
-
-    /* ── Parse request (FormData from capture page) ── */
-    const formData = await req.formData();
-    const imageFile = formData.get("image") as File | null;
-    const concern = (formData.get("concern") as string) || "general";
-    const ageRange = (formData.get("ageRange") as string) || "unknown";
-    const routineLevel = (formData.get("routineLevel") as string) || "unknown";
-    const goal = (formData.get("goal") as string) || "general";
-
-    if (!imageFile) {
-      return NextResponse.json(
-        { error: "No image provided" },
+        { error: "imageUrl is required" },
         { status: 400 }
       );
     }
 
-    /* ── Upload to Supabase Storage ── */
-    const timestamp = Date.now();
-    const ext = imageFile.type === "image/png" ? "png" : "jpg";
-    const storagePath = `anonymous/${timestamp}.${ext}`;
+    const imageResponse = await fetch(imageUrl);
+    const imageBuffer = await imageResponse.arrayBuffer();
+    const base64Image = Buffer.from(imageBuffer).toString("base64");
+    console.log("🖼️ Base64 length:", base64Image.length);
+    console.log("🚀 Calling Gemini 2.5 Flash...");
 
-    const arrayBuffer = await imageFile.arrayBuffer();
-    const buffer = Buffer.from(arrayBuffer);
-
-    const { error: uploadError } = await getSupabase().storage
-      .from("skin-photos")
-      .upload(storagePath, buffer, {
-        contentType: imageFile.type,
-        upsert: false,
-      });
-
-    if (uploadError) {
-      console.error("Storage upload error:", uploadError);
-      return NextResponse.json(
-        { error: "Failed to upload image. Please try again." },
-        { status: 500 }
-      );
-    }
-
-    // Get a signed URL (private bucket — not public)
-    const { data: signedData, error: signedError } = await getSupabase().storage
-      .from("skin-photos")
-      .createSignedUrl(storagePath, 60 * 10); // 10 min expiry
-
-    if (signedError || !signedData?.signedUrl) {
-      console.error("Signed URL error:", signedError);
-      return NextResponse.json(
-        { error: "Failed to process image." },
-        { status: 500 }
-      );
-    }
-
-    const imageUrl = signedData.signedUrl;
-
-    /* ── Convert image to base64 for OpenAI ── */
-    const base64Image = buffer.toString("base64");
-    const mimeType = imageFile.type || "image/jpeg";
-    const dataUrl = `data:${mimeType};base64,${base64Image}`;
-
-    /* ── Call OpenAI GPT-4o Vision ── */
-    const systemPrompt = buildSystemPrompt(concern, ageRange, routineLevel, goal);
-
-    let parsed: Record<string, unknown> | null = null;
-
-    const openai = getOpenAI();
-
-    // First attempt
-    const completion = await openai.chat.completions.create({
-      model: "gpt-4o",
-      max_tokens: 2000,
-      temperature: 0.4,
-      messages: [
-        { role: "system", content: systemPrompt },
-        {
-          role: "user",
-          content: [
+    const geminiRes = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${process.env.GEMINI_API_KEY}`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          generationConfig: {
+            temperature: 0.7,
+            responseMimeType: "application/json",
+          },
+          contents: [
             {
-              type: "image_url",
-              image_url: { url: dataUrl, detail: "high" },
-            },
-            {
-              type: "text",
-              text: "Analyze this face and return the JSON skin assessment.",
+              role: "user",
+              parts: [
+                {
+                  inlineData: {
+                    mimeType: "image/jpeg",
+                    data: base64Image,
+                  },
+                },
+                {
+                  text: `You are Mogly, a skincare wellness app AI. Analyze this selfie and return ONLY valid JSON with no explanation.
+
+User: concern=${concern}, age=${ageRange}, routine=${routineLevel}, goal=${goal}
+
+Return exactly this structure:
+{
+  "overall_score": <0-100>,
+  "clarity_score": <0-100>,
+  "glow_score": <0-100>,
+  "texture_score": <0-100>,
+  "hydration_score": <0-100>,
+  "evenness_score": <0-100>,
+  "firmness_score": <0-100>,
+  "percentile": <1-100>,
+  "conditions": [{"name":"string","severity":"mild|moderate|severe","area":"string","description":"string"}],
+  "score_killer": "biggest issue in one sentence",
+  "improvement_plan": [{"step":1,"action":"string","why":"string","impact":"+X points"}],
+  "product_recs": [{"product":"string","brand":"string","why":"string","price_range":"$"}],
+  "dietary_triggers": [{"trigger":"string","impact":"string","recommendation":"string"}]
+}`,
+                },
+              ],
             },
           ],
-        },
-      ],
-    });
+        }),
+      }
+    );
 
-    const rawResponse = completion.choices[0]?.message?.content || "";
-    parsed = parseAIResponse(rawResponse);
+    const geminiData = await geminiRes.json();
+    console.log("✅ Gemini response:", JSON.stringify(geminiData).substring(0, 200));
 
-    // Retry once if parse failed
-    if (!parsed) {
-      console.warn("First parse failed, retrying...");
-      const retry = await openai.chat.completions.create({
-        model: "gpt-4o",
-        max_tokens: 2000,
-        temperature: 0.2,
-        messages: [
-          { role: "system", content: systemPrompt },
-          {
-            role: "user",
-            content: [
-              {
-                type: "image_url",
-                image_url: { url: dataUrl, detail: "high" },
-              },
-              {
-                type: "text",
-                text: "Analyze this face and return the JSON skin assessment.",
-              },
-            ],
-          },
-          { role: "assistant", content: rawResponse },
-          {
-            role: "user",
-            content:
-              "That response was not valid JSON. Return ONLY the raw JSON object, no markdown, no backticks, no explanation.",
-          },
-        ],
-      });
-
-      const retryRaw = retry.choices[0]?.message?.content || "";
-      parsed = parseAIResponse(retryRaw);
-    }
-
-    if (!parsed) {
-      console.error("AI response parse failed after retry:", rawResponse);
+    if (!geminiRes.ok) {
+      console.error("❌ Gemini error:", geminiData);
       return NextResponse.json(
-        { error: "Our AI returned an unexpected format. Please try again." },
+        { error: "AI analysis failed" },
         { status: 500 }
       );
     }
 
-    /* ── Save to Supabase scans table ── */
-    const scanRow = {
-      image_url: imageUrl,
-      overall_score: parsed.overall_score as number,
-      clarity_score: parsed.clarity_score as number,
-      glow_score: parsed.glow_score as number,
-      texture_score: parsed.texture_score as number,
-      hydration_score: parsed.hydration_score as number,
-      evenness_score: parsed.evenness_score as number,
-      firmness_score: parsed.firmness_score as number,
-      percentile: parsed.percentile as number,
-      conditions: parsed.conditions,
-      score_killer: parsed.score_killer as string,
-      improvement_plan: parsed.improvement_plan,
-      product_recs: parsed.product_recs,
-      dietary_triggers: parsed.dietary_triggers,
-      raw_ai_response: parsed,
-      onboarding_data: { concern, ageRange, routineLevel, goal },
-      user_id: null, // anonymous scan
-    };
+    const content = geminiData.candidates?.[0]?.content?.parts?.[0]?.text;
+    console.log("📝 Content:", content?.substring(0, 100));
 
-    const { data: scanData, error: scanError } = await getSupabase()
+    if (!content) {
+      console.error("❌ No content from Gemini");
+      return NextResponse.json(
+        { error: "Empty response from AI" },
+        { status: 500 }
+      );
+    }
+
+    let results;
+    try {
+      results = JSON.parse(content);
+      console.log("✅ JSON parsed");
+    } catch (e) {
+      console.error("❌ Parse failed:", content.substring(0, 200));
+      return NextResponse.json(
+        { error: "Invalid response format" },
+        { status: 400 }
+      );
+    }
+
+    const { data, error } = await supabase
       .from("scans")
-      .insert(scanRow)
+      .insert({
+        image_url: imageUrl,
+        overall_score: results.overall_score,
+        clarity_score: results.clarity_score,
+        glow_score: results.glow_score,
+        texture_score: results.texture_score,
+        hydration_score: results.hydration_score,
+        evenness_score: results.evenness_score,
+        firmness_score: results.firmness_score,
+        percentile: results.percentile,
+        conditions: results.conditions,
+        score_killer: results.score_killer,
+        improvement_plan: results.improvement_plan,
+        product_recs: results.product_recs,
+        dietary_triggers: results.dietary_triggers,
+        raw_ai_response: results,
+        onboarding_data: { concern, ageRange, routineLevel, goal },
+        user_id: null,
+      })
       .select("id")
       .single();
 
-    if (scanError || !scanData) {
-      console.error("Scan insert error:", scanError);
-      return NextResponse.json(
-        { error: "Failed to save results. Please try again." },
-        { status: 500 }
-      );
+    if (error) {
+      console.error("❌ DB error:", error);
+      throw error;
     }
 
-    /* ── Return ── */
-    return NextResponse.json({
-      scanId: scanData.id,
-      results: parsed,
-    });
-  } catch (err: unknown) {
-    console.error("Analyze endpoint error:", err);
-
-    // OpenAI specific errors
-    const message =
-      err instanceof Error ? err.message : "Unknown error";
-
-    if (message.includes("rate_limit") || message.includes("429")) {
-      return NextResponse.json(
-        { error: "Our AI is busy. Please wait a moment and try again." },
-        { status: 503 }
-      );
-    }
-
-    return NextResponse.json(
-      { error: "Something went wrong analyzing your photo. Please try again." },
-      { status: 500 }
-    );
+    console.log("✅ Saved scan ID:", data.id);
+    return NextResponse.json({ scanId: data.id, results });
+  } catch (error: unknown) {
+    console.error("❌ Error:", error);
+    const msg = error instanceof Error ? error.message : "Failed";
+    return NextResponse.json({ error: msg }, { status: 500 });
   }
 }

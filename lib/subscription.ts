@@ -14,17 +14,26 @@ function getAdmin() {
 }
 
 export async function isSubscribed(userId: string): Promise<boolean> {
-  const supabase = getAdmin();
-  const { data } = await supabase
-    .from("profiles")
-    .select("subscription_status")
-    .eq("id", userId)
-    .single();
+  try {
+    const supabase = getAdmin();
+    const { data, error } = await supabase
+      .from("profiles")
+      .select("subscription_status")
+      .eq("id", userId)
+      .single();
 
-  return (
-    data?.subscription_status === "active" ||
-    data?.subscription_status === "trial"
-  );
+    if (error || !data) {
+      return false; // Default to free tier if lookup fails
+    }
+
+    return (
+      data.subscription_status === "active" ||
+      data.subscription_status === "trial"
+    );
+  } catch (error) {
+    // If anything fails, default to free tier
+    return false;
+  }
 }
 
 export async function getSubscriptionStatus(
