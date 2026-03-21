@@ -267,7 +267,7 @@ export function ShareButton({ data }: { data: ShareCardData }) {
                 textAlign: "center",
               }}
             >
-              What's YOUR skin score?
+              What&apos;s YOUR skin score?
             </div>
             <div
               style={{

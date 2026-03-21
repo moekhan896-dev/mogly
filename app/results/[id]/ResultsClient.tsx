@@ -135,7 +135,7 @@ export function ResultsClient({ scan, isPremium, history, justUpgraded }: Props)
           <div className="rounded-xl bg-bg-card p-5">
             <p className="font-mono text-[11px] tracking-[2px] text-text-muted mb-3">WHAT WE FOUND</p>
             <div className="blur-sm select-none pointer-events-none space-y-2">
-              {scan.conditions?.slice(0, 3).map((cond: any, idx: number) => {
+              {scan.conditions?.slice(0, 3).map((cond: { severity: string; name: string; area?: string }, idx: number) => {
                 const severityColor = 
                   cond.severity === 'severe' ? 'text-red-500' :
                   cond.severity === 'moderate' ? 'text-orange-500' :
