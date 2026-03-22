@@ -11,12 +11,12 @@ const SUB_LABELS = [
   { key: "firmness_score", label: "FIRMNESS" },
 ] as const;
 
-function getVerdict(score: number): { text: string; color: string } {
-  if (score >= 90) return { text: "EXCEPTIONAL", color: "text-amber-300" };
-  if (score >= 75) return { text: "STRONG", color: "text-accent-green" };
-  if (score >= 60) return { text: "AVERAGE", color: "text-amber-400" };
-  if (score >= 40) return { text: "NEEDS WORK", color: "text-orange-400" };
-  return { text: "CRITICAL", color: "text-red-400" };
+function getVerdict(score: number): { text: string; color: string; hexColor: string } {
+  if (score >= 90) return { text: "EXCEPTIONAL", color: "text-yellow-300", hexColor: "#FFD700" };
+  if (score >= 75) return { text: "STRONG", color: "text-accent-green", hexColor: "#00E5A0" };
+  if (score >= 60) return { text: "AVERAGE", color: "text-amber-400", hexColor: "#FBBF24" };
+  if (score >= 40) return { text: "NEEDS WORK", color: "text-orange-500", hexColor: "#F97316" };
+  return { text: "CRITICAL", color: "text-red-500", hexColor: "#EF4444" };
 }
 
 export function SubScoresGrid({

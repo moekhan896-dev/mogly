@@ -280,6 +280,17 @@ export function ShareButton({ data }: { data: ShareCardData }) {
             >
               mogly.app
             </div>
+            <div
+              style={{
+                fontSize: 12,
+                color: "#6B7280",
+                fontFamily: "monospace",
+                marginTop: 20,
+                textAlign: "center",
+              }}
+            >
+              Results are AI-generated and not a medical diagnosis
+            </div>
           </div>
         </div>
       </div>

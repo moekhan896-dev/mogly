@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { createClient } from "@/lib/supabase";
 import { analytics } from "@/lib/analytics";
 
@@ -8,6 +8,7 @@ export function Paywall({ scanId }: { scanId: string }) {
   const [userId, setUserId] = useState<string | null>(null);
   const [checkingAuth, setCheckingAuth] = useState(true);
   const [timeLeft, setTimeLeft] = useState<string>("24:00:00");
+  const startTimeRef = useRef<number>(Date.now());
 
   useEffect(() => {
     const supabase = createClient();
@@ -17,18 +18,10 @@ export function Paywall({ scanId }: { scanId: string }) {
     });
   }, []);
 
-  // Urgency timer - 24 hour countdown stored in localStorage
+  // Urgency timer - 24 hour countdown stored in ref
   useEffect(() => {
-    const storageKey = `mogly-timer-start-${scanId}`;
-    let startTime = localStorage.getItem(storageKey);
-    
-    if (!startTime) {
-      startTime = Date.now().toString();
-      localStorage.setItem(storageKey, startTime);
-    }
-
     const interval = setInterval(() => {
-      const elapsed = Date.now() - parseInt(startTime!);
+      const elapsed = Date.now() - startTimeRef.current;
       const totalMs = 24 * 60 * 60 * 1000; // 24 hours
       const remainingMs = Math.max(0, totalMs - elapsed);
       
@@ -40,7 +33,7 @@ export function Paywall({ scanId }: { scanId: string }) {
     }, 1000);
 
     return () => clearInterval(interval);
-  }, [scanId]);
+  }, []);
 
   useEffect(() => {
     if (!checkingAuth) analytics.paywallViewed(scanId);
@@ -149,7 +142,7 @@ export function Paywall({ scanId }: { scanId: string }) {
             key={plan.id}
             onClick={() => handleCheckout(plan.id)}
             disabled={checkingAuth}
-            className={`relative rounded-xl px-5 py-4 text-left transition-all disabled:opacity-50
+            className={`relative rounded-xl px-5 py-4 text-left transition-all hover:border-white/20 disabled:opacity-50
               ${
                 plan.highlighted
                   ? "bg-bg-card border-2 border-accent-gold/60"

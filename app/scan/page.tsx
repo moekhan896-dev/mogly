@@ -12,6 +12,7 @@ interface Answers {
   ageRange: string;
   routineLevel: string;
   goal: string;
+  lifeChange?: string;
 }
 
 type AnswerKey = keyof Answers;
@@ -81,6 +82,17 @@ const STEPS: Step[] = [
       { icon: "🎨", label: "Even tone", value: "even_tone" },
     ],
   },
+  {
+    key: "lifeChange",
+    question: "What would better skin change about your life?",
+    layout: "grid-2x2",
+    options: [
+      { icon: "💪", label: "More confidence", value: "more_confidence" },
+      { icon: "🎭", label: "Stop hiding behind filters", value: "no_filters" },
+      { icon: "👋", label: "Better first impressions", value: "first_impressions" },
+      { icon: "😌", label: "Feel comfortable in my own skin", value: "comfortable" },
+    ],
+  },
 ];
 
 /* -------------------------------------------------- */
@@ -94,6 +106,7 @@ export default function ScanPage() {
     ageRange: "",
     routineLevel: "",
     goal: "",
+    lifeChange: "",
   });
   const [direction, setDirection] = useState<"forward" | "back">("forward");
   const [animating, setAnimating] = useState(false);

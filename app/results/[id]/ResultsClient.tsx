@@ -4,7 +4,9 @@ import { getScoreColor } from "@/lib/scores";
 import type { ScanResult } from "@/lib/scores";
 import { AnimatedScore } from "@/components/results/AnimatedScore";
 import { SubScoresGrid } from "@/components/results/SubScoresGrid";
+import { HowWeAnalyzed } from "@/components/results/HowWeAnalyzed";
 import { ShareButton } from "@/components/results/ShareButton";
+import { EmailCaptureCard } from "@/components/results/EmailCaptureCard";
 import { Paywall } from "@/components/results/Paywall";
 import { PremiumContent } from "@/components/results/PremiumContent";
 import { ScoreHistory } from "@/components/results/ScoreHistory";
@@ -85,8 +87,34 @@ export function ResultsClient({ scan, isPremium, history, justUpgraded }: Props)
             </span>
           </div>
 
+          {/* Score-Dependent Emotional Message */}
+          <div
+            className="mb-6 rounded-xl bg-white/[0.02] border border-white/[0.06] px-5 py-3 text-center animate-fade-up"
+            style={{ animationDelay: "250ms" }}
+          >
+            {scan.overall_score >= 85 ? (
+              <p className="text-sm text-accent-green">
+                Your skin is in excellent shape — share and flex 💪
+              </p>
+            ) : scan.overall_score >= 60 ? (
+              <p className="text-sm text-amber-400">
+                Good foundation — your plan can push you to 85+
+              </p>
+            ) : (
+              <p className="text-sm text-orange-400">
+                Users who follow their plan improve 15-20 points in 30 days
+              </p>
+            )}
+          </div>
+
           {/* Sub-scores grid */}
           <div className="w-full mb-6">
+            <div
+              className="mb-6 animate-fade-up"
+              style={{ animationDelay: "450ms" }}
+            >
+              <HowWeAnalyzed />
+            </div>
             <SubScoresGrid scores={scores} />
           </div>
 
@@ -96,6 +124,31 @@ export function ResultsClient({ scan, isPremium, history, justUpgraded }: Props)
             style={{ animationDelay: "750ms" }}
           >
             <ShareButton data={scan} />
+          </div>
+
+          {/* Challenge a friend button */}
+          <div
+            className="w-full animate-fade-up"
+            style={{ animationDelay: "800ms" }}
+          >
+            <button
+              onClick={() => {
+                const text = `I got a ${scan.overall_score} on Mogly. Think you can beat me? mogly.app`;
+                if (navigator.share) {
+                  navigator.share({
+                    text,
+                    title: "Challenge me on Mogly",
+                  }).catch(() => {});
+                } else {
+                  // Fallback: copy to clipboard
+                  navigator.clipboard.writeText(text);
+                  alert("Challenge text copied! Share it however you like.");
+                }
+              }}
+              className="w-full rounded-xl bg-bg-card border border-white/[0.06] hover:border-white/10 px-5 py-3 text-sm text-text-muted text-center transition-all"
+            >
+              🎯 Challenge a friend — dare them to beat your score
+            </button>
           </div>
 
           {/* Score Killer - Enhanced */}
@@ -198,7 +251,12 @@ export function ResultsClient({ scan, isPremium, history, justUpgraded }: Props)
             )}
           </>
         ) : (
-          <Paywall scanId={scan.id} />
+          <>
+            <div className="mb-6 animate-fade-up" style={{ animationDelay: "1300ms" }}>
+              <EmailCaptureCard scanId={scan.id} />
+            </div>
+            <Paywall scanId={scan.id} />
+          </>
         )}
 
         {/* ══════════════════════════════════════ */}

@@ -2,8 +2,33 @@
 
 import { getSeverityColor } from "@/lib/scores";
 import type { ScanResult } from "@/lib/scores";
+import { useState } from "react";
 
 export function PremiumContent({ scan }: { scan: ScanResult }) {
+  const [reminderSet, setReminderSet] = useState(false);
+  const [reminderEmail, setReminderEmail] = useState("");
+  const [loading, setLoading] = useState(false);
+
+  const handleSetReminder = async () => {
+    if (!reminderEmail) return;
+    setLoading(true);
+    try {
+      const res = await fetch("/api/subscribe", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: reminderEmail, scanId: scan.id }),
+      });
+      if (res.ok) {
+        setReminderSet(true);
+        setReminderEmail("");
+      }
+    } catch (err) {
+      console.error("Reminder error:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div className="flex flex-col gap-8 animate-fade-up" style={{ animationDelay: "200ms" }}>
       {/* ── Conditions ── */}
@@ -128,13 +153,47 @@ export function PremiumContent({ scan }: { scan: ScanResult }) {
         </section>
       )}
 
-      {/* ── Scan Again ── */}
-      <a
-        href="/scan/capture"
-        className="flex items-center justify-center gap-2 rounded-xl bg-bg-card border border-accent-green/30 py-4 text-sm font-semibold text-accent-green transition-colors hover:bg-accent-green/5"
-      >
-        📸 Re-scan to track your progress
-      </a>
+      {/* ── Re-scan Prompt ── */}
+      <div className="rounded-xl bg-bg-card border border-accent-green/20 p-5">
+        <div className="flex items-start gap-3 mb-3">
+          <span className="text-2xl">📈</span>
+          <div>
+            <p className="font-semibold text-text-primary">Track Your Progress</p>
+            <p className="text-xs text-text-muted mt-1">
+              Scan again in 7 days to see how your score changed
+            </p>
+          </div>
+        </div>
+        
+        {reminderSet ? (
+          <p className="text-xs text-accent-green font-medium">✅ Reminder set! Check your email</p>
+        ) : (
+          <div className="flex gap-2">
+            <input
+              type="email"
+              placeholder="your@email.com"
+              value={reminderEmail}
+              onChange={(e) => setReminderEmail(e.target.value)}
+              className="flex-1 rounded-lg bg-bg-primary px-3 py-2 text-sm border border-white/[0.06] placeholder:text-text-muted focus:outline-none focus:border-accent-green/40 disabled:opacity-50"
+              disabled={loading}
+            />
+            <button
+              onClick={handleSetReminder}
+              disabled={loading || !reminderEmail}
+              className="rounded-lg bg-accent-green/10 border border-accent-green/30 px-4 py-2 text-sm font-semibold text-accent-green hover:bg-accent-green/20 disabled:opacity-50 transition-all"
+            >
+              {loading ? "..." : "Remind"}
+            </button>
+          </div>
+        )}
+        
+        <a
+          href="/scan/capture"
+          className="block mt-3 text-center text-sm text-text-muted hover:text-text-primary transition-colors"
+        >
+          or Scan Again Now →
+        </a>
+      </div>
     </div>
   );
 }

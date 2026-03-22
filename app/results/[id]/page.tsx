@@ -25,7 +25,12 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     .single();
 
   if (!scan) {
-    return { title: "Mogly — AI Skin Score" };
+    return { 
+      title: "Mogly — AI Skin Score",
+      openGraph: {
+        images: [`${process.env.NEXT_PUBLIC_APP_URL || "https://mogly.app"}/og-default.png`],
+      },
+    };
   }
 
   return {
@@ -34,6 +39,14 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     openGraph: {
       title: `My Mogly Score: ${scan.overall_score}`,
       description: `Top ${scan.percentile}% of users. Get your free AI skin analysis.`,
+      images: [`${process.env.NEXT_PUBLIC_APP_URL || "https://mogly.app"}/og-default.png`],
+      type: "website",
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: `My Mogly Score: ${scan.overall_score}`,
+      description: `Top ${scan.percentile}% of users. Get your free AI skin analysis.`,
+      images: [`${process.env.NEXT_PUBLIC_APP_URL || "https://mogly.app"}/og-default.png`],
     },
   };
 }

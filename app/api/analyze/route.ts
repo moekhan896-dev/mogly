@@ -50,6 +50,13 @@ export async function POST(req: NextRequest) {
 
 User: concern=${concern}, age=${ageRange}, routine=${routineLevel}, goal=${goal}
 
+CRITICAL INSTRUCTIONS:
+1. Be specific and clinical in your condition names. Instead of 'Dryness', say 'Transepidermal water loss with visible desquamation'. Instead of 'Acne', specify the type: 'Comedonal acne (closed comedones)' or 'Inflammatory papulopustular acne'. Instead of 'Redness', say 'Diffuse erythema consistent with rosacea subtype 1' or 'Post-inflammatory erythema from resolved acne lesions'. This clinical specificity makes the analysis feel dermatologist-grade and worth paying for.
+
+2. For the score_killer field, be dramatic but accurate. Don't say 'mild dryness is hindering glow.' Say 'Compromised moisture barrier is accelerating visible aging and preventing your skin from reaching its peak clarity and radiance.'
+
+3. For improvement_plan, each step should include a specific product ingredient (niacinamide, salicylic acid, hyaluronic acid, retinol, ceramides) and explain WHY at a molecular level.
+
 Return exactly this structure:
 {
   "overall_score": <0-100>,
