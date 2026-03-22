@@ -109,7 +109,7 @@ export function Paywall({ scanId }: { scanId: string }) {
       <div className="flex items-center justify-center gap-2 pt-2">
         <span className="text-lg">🔓</span>
         <span className="text-sm font-semibold text-text-primary">
-          Unlock Your Fix Plan
+          Unlock Full Diagnostic Report
         </span>
       </div>
 

@@ -9,11 +9,11 @@ import { analytics } from "@/lib/analytics";
 /*  Loading steps                                      */
 /* -------------------------------------------------- */
 const LOADING_STEPS = [
-  "Scanning skin texture...",
-  "Analyzing clarity and glow...",
-  "Measuring hydration levels...",
-  "Detecting conditions...",
-  "Calculating your Mogly Score...",
+  "Initializing dermal analysis...",
+  "Mapping melanin distribution...",
+  "Measuring transepidermal water loss...",
+  "Cross-referencing clinical markers...",
+  "Computing composite skin health index...",
 ];
 
 /* -------------------------------------------------- */
@@ -426,16 +426,47 @@ function CaptureInner() {
         {/* Oval face guide (only when camera active, no preview) */}
         {mode === "camera" && cameraReady && !preview && (
           <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+            {/* Corner brackets */}
+            <div className="absolute top-8 left-8 w-6 h-6 border-t-2 border-l-2 border-accent-green/60" />
+            <div className="absolute top-8 right-8 w-6 h-6 border-t-2 border-r-2 border-accent-green/60" />
+            <div className="absolute bottom-8 left-8 w-6 h-6 border-b-2 border-l-2 border-accent-green/60" />
+            <div className="absolute bottom-8 right-8 w-6 h-6 border-b-2 border-r-2 border-accent-green/60" />
+
+            {/* Face oval guide */}
             <div
-              className="w-[55%] h-[70%] rounded-[50%] border-2 border-dashed border-white/30"
+              className="w-[55%] h-[70%] rounded-[50%] border-2 border-dashed border-accent-green/30"
             />
+
+            {/* Grid overlay inside oval */}
+            <svg
+              className="absolute w-[55%] h-[70%]"
+              viewBox="0 0 100 140"
+              preserveAspectRatio="none"
+              style={{
+                opacity: 0.08,
+              }}
+            >
+              <g stroke="rgba(0, 229, 160, 0.3)" strokeWidth="0.5">
+                {/* Vertical lines */}
+                {[25, 50, 75].map((x) => (
+                  <line key={`v-${x}`} x1={x} y1="0" x2={x} y2="140" />
+                ))}
+                {/* Horizontal lines */}
+                {[20, 40, 60, 80, 100, 120].map((y) => (
+                  <line key={`h-${y}`} x1="0" y1={y} x2="100" y2={y} />
+                ))}
+              </g>
+            </svg>
           </div>
         )}
       </div>
 
       {/* ── Tip text ── */}
       <p className="mt-4 font-mono text-[11px] tracking-wider text-text-muted text-center">
-        Good lighting&ensp;•&ensp;No filters&ensp;•&ensp;No makeup
+        Position face within frame • Good lighting required
+      </p>
+      <p className="mt-1 font-mono text-[10px] tracking-wider text-text-muted/60 text-center">
+        AI will analyze 10 skin health dimensions
       </p>
 
       {/* ── Error ── */}

@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Instrument_Sans, DM_Mono } from "next/font/google";
 import { Suspense } from "react";
 import { AnalyticsProvider } from "@/lib/analytics";
+import { ParticleBackground } from "@/components/ui/ParticleBackground";
 import "./globals.css";
 
 const instrumentSans = Instrument_Sans({
@@ -67,6 +68,7 @@ export default function RootLayout({
       <body
         className={`${instrumentSans.variable} ${dmMono.variable} font-sans antialiased bg-bg-primary text-text-primary`}
       >
+        <ParticleBackground />
         <Suspense>
           <AnalyticsProvider>{children}</AnalyticsProvider>
         </Suspense>

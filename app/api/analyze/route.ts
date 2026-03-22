@@ -57,6 +57,8 @@ CRITICAL INSTRUCTIONS:
 
 3. For improvement_plan, each step should include a specific product ingredient (niacinamide, salicylic acid, hyaluronic acid, retinol, ceramides) and explain WHY at a molecular level.
 
+4. For skin_age: Estimate the user's skin age (how old their skin LOOKS, not their actual age). Base this on fine lines, elasticity, hydration, and sun damage indicators. Skin age can be lower or higher than actual age. Users aged 18-24 with good skin might have skin age 16-20. Users with sun damage or acne scarring might have skin age 5-10 years higher than actual.
+
 Return exactly this structure:
 {
   "overall_score": <0-100>,
@@ -66,6 +68,7 @@ Return exactly this structure:
   "hydration_score": <0-100>,
   "evenness_score": <0-100>,
   "firmness_score": <0-100>,
+  "skin_age": <integer>,
   "percentile": <1-100>,
   "conditions": [{"name":"string","severity":"mild|moderate|severe","area":"string","description":"string"}],
   "score_killer": "biggest issue in one sentence",
@@ -126,6 +129,7 @@ Return exactly this structure:
         hydration_score: results.hydration_score,
         evenness_score: results.evenness_score,
         firmness_score: results.firmness_score,
+        skin_age: results.skin_age,
         percentile: results.percentile,
         conditions: results.conditions,
         score_killer: results.score_killer,

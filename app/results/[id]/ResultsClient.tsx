@@ -56,12 +56,26 @@ export function ResultsClient({ scan, isPremium, history, justUpgraded }: Props)
         {/*  FREE SECTION — Scores                */}
         {/* ══════════════════════════════════════ */}
         <div className="flex flex-col items-center text-center">
+          {/* Face silhouette avatar */}
+          <div
+            className="mb-5 w-16 h-16 rounded-full bg-gradient-to-b from-accent-green/20 to-accent-green/5 border-2 border-accent-green/40 flex items-center justify-center animate-fade-up"
+            style={{ animationDelay: "-100ms" }}
+          >
+            <svg
+              className="w-8 h-8 text-accent-green/60"
+              fill="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 3c1.66 0 3 1.34 3 3s-1.34 3-3 3-3-1.34-3-3 1.34-3 3-3zm0 14.2c-2.5 0-4.71-1.28-6-3.22.03-1.99 4-3.08 6-3.08 1.99 0 5.97 1.09 6 3.08-1.29 1.94-3.5 3.22-6 3.22z" />
+            </svg>
+          </div>
+
           {/* Label */}
           <span
             className="font-mono text-[11px] uppercase tracking-[3px] text-text-muted mb-5 animate-fade-up"
             style={{ animationDelay: "0ms" }}
           >
-            Mogly Score
+            Mogly Skin Analysis
           </span>
 
           {/* Big score */}
@@ -71,7 +85,7 @@ export function ResultsClient({ scan, isPremium, history, justUpgraded }: Props)
 
           {/* Percentile badge - Smart Language */}
           <div
-            className="mt-4 mb-8 rounded-full bg-bg-card px-4 py-1.5 text-xs text-text-muted animate-fade-up"
+            className="mt-4 mb-4 rounded-full bg-bg-card px-4 py-1.5 text-xs text-text-muted animate-fade-up"
             style={{ animationDelay: "200ms" }}
           >
             <span className="font-semibold text-text-primary">
@@ -85,6 +99,28 @@ export function ResultsClient({ scan, isPremium, history, justUpgraded }: Props)
                 ? `Bottom half — Your plan can fix this 💪` 
                 : `Needs attention — Start your fix plan today 🚨`}
             </span>
+          </div>
+
+          {/* Skin Age Badge */}
+          <div
+            className="mb-6 rounded-full bg-bg-card px-4 py-1.5 text-xs text-text-muted animate-fade-up"
+            style={{ animationDelay: "220ms" }}
+          >
+            <span className="font-semibold text-text-primary">
+              Skin Age: <span className="text-accent-gold">{scan.skin_age || "—"}</span>
+            </span>
+            {scan.skin_age !== undefined && (
+              <>
+                <br />
+                {scan.skin_age < 20 ? (
+                  <span className="text-accent-green text-[11px]">Your skin looks 3+ years younger ✨</span>
+                ) : scan.skin_age > 30 ? (
+                  <span className="text-amber-400 text-[11px]">Your skin is aging faster than expected</span>
+                ) : (
+                  <span className="text-text-muted text-[11px]">Within average range for your age</span>
+                )}
+              </>
+            )}
           </div>
 
           {/* Score-Dependent Emotional Message */}
@@ -162,7 +198,7 @@ export function ResultsClient({ scan, isPremium, history, justUpgraded }: Props)
                 <div className="flex items-center gap-2 mb-3">
                   <span className="text-sm">⚠️</span>
                   <span className="font-mono text-[10px] uppercase tracking-[0.15em] text-accent-red">
-                    Your #1 Score Killer
+                    Primary Concern Detected
                   </span>
                 </div>
                 <p className="text-sm text-accent-red/90 leading-relaxed mb-3">
@@ -186,7 +222,7 @@ export function ResultsClient({ scan, isPremium, history, justUpgraded }: Props)
         <div className="mt-6 space-y-4">
           {/* WHAT WE FOUND - Real conditions */}
           <div className="rounded-xl bg-bg-card p-5">
-            <p className="font-mono text-[11px] tracking-[2px] text-text-muted mb-3">WHAT WE FOUND</p>
+            <p className="font-mono text-[11px] tracking-[2px] text-text-muted mb-3">Diagnostic Findings</p>
             <div className="blur-sm select-none pointer-events-none space-y-2">
               {scan.conditions?.slice(0, 3).map((cond: { severity: string; name: string; area?: string }, idx: number) => {
                 const severityColor = 
@@ -206,7 +242,7 @@ export function ResultsClient({ scan, isPremium, history, justUpgraded }: Props)
 
           {/* YOUR FIX PLAN - Real step 1 */}
           <div className="rounded-xl bg-bg-card p-5">
-            <p className="font-mono text-[11px] tracking-[2px] text-text-muted mb-3">YOUR 5-STEP FIX PLAN</p>
+            <p className="font-mono text-[11px] tracking-[2px] text-text-muted mb-3">Treatment Protocol</p>
             <div className="blur-sm select-none pointer-events-none">
               <div className="rounded-lg bg-white/[0.03] p-2.5 mb-1.5 text-white text-sm">
                 {scan.improvement_plan?.[0]?.action || "Step 1: Personalized routine awaits"}
@@ -223,7 +259,7 @@ export function ResultsClient({ scan, isPremium, history, justUpgraded }: Props)
             <p className="font-mono text-[11px] tracking-[2px] text-text-muted mb-2">
               We found {scan.conditions?.length || 0} conditions affecting your score
             </p>
-            <p className="font-mono text-[11px] tracking-[2px] text-text-muted mb-3">YOUR SCORE VS AVERAGE</p>
+            <p className="font-mono text-[11px] tracking-[2px] text-text-muted mb-3">Comparative Analysis</p>
             <p className="text-white text-base mb-1">You: <span className="text-2xl font-bold">{scan.overall_score}</span> | Average: <span className="text-2xl font-bold">62</span></p>
             <p className={`text-[13px] ${scan.overall_score >= 62 ? 'text-accent-green' : 'text-amber-400'}`}>
               {scan.overall_score >= 62

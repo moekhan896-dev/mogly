@@ -38,6 +38,7 @@ export interface ScanResult {
   hydration_score: number;
   evenness_score: number;
   firmness_score: number;
+  skin_age: number;
   percentile: number;
   conditions: {
     name: string;
