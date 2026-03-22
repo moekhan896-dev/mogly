@@ -2,6 +2,7 @@ import { createClient } from "@supabase/supabase-js";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import { isSubscribed } from "@/lib/subscription";
+import { getOrCreateStreak } from "@/lib/streaks";
 import { ResultsClient } from "./ResultsClient";
 
 function getSupabase() {
@@ -65,6 +66,16 @@ export default async function ResultsPage({ params, searchParams }: PageProps) {
     notFound();
   }
 
+  // Get or create streak for returning users
+  let streak = null;
+  if (scan.user_id) {
+    try {
+      streak = await getOrCreateStreak(scan.user_id);
+    } catch (err) {
+      console.error("Streak fetch error:", err);
+    }
+  }
+
   // Fetch score history if user has multiple scans
   let history: { date: string; score: number }[] = [];
   if (scan.user_id) {
@@ -108,6 +119,7 @@ export default async function ResultsPage({ params, searchParams }: PageProps) {
       isPremium={isPremium}
       history={history}
       justUpgraded={justUpgraded}
+      streak={streak?.current_streak || null}
     />
   );
 }

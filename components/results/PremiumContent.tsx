@@ -194,6 +194,22 @@ export function PremiumContent({ scan }: { scan: ScanResult }) {
           or Scan Again Now →
         </a>
       </div>
+
+      {/* Quick action buttons */}
+      <div className="mt-8 flex flex-col gap-3 pt-8 border-t border-white/[0.06]">
+        <a
+          href="/dashboard"
+          className="flex items-center justify-center gap-2 rounded-xl bg-accent-gold/10 border border-accent-gold/30 py-3 text-sm font-semibold text-accent-gold transition-colors hover:bg-accent-gold/20"
+        >
+          📋 Your Daily Routine
+        </a>
+        <a
+          href="/coach"
+          className="flex items-center justify-center gap-2 rounded-xl bg-accent-green/10 border border-accent-green/30 py-3 text-sm font-semibold text-accent-green transition-colors hover:bg-accent-green/20"
+        >
+          💬 Ask Your Coach
+        </a>
+      </div>
     </div>
   );
 }

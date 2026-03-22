@@ -57,21 +57,18 @@ body {
   animation: cta-pulse 2s ease-in-out infinite;
 }
 
-/* Sonar ping animation for score reveal */
-@keyframes sonar-ping {
+/* Scanning line animation */
+@keyframes scan-line {
   0% {
-    box-shadow: 0 0 0 0 rgba(0, 229, 160, 0.7);
-  }
-  50% {
-    box-shadow: 0 0 0 30px rgba(0, 229, 160, 0);
+    top: 0;
   }
   100% {
-    box-shadow: 0 0 0 0 rgba(0, 229, 160, 0);
+    top: 100%;
   }
 }
 
-.animate-sonar-ping {
-  animation: sonar-ping 1s ease-out;
+.animate-scan-line {
+  animation: scan-line 4s ease-in-out infinite;
 }
 
 /* Loading spinner — slow rotation */

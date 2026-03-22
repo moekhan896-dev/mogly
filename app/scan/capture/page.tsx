@@ -426,6 +426,11 @@ function CaptureInner() {
         {/* Oval face guide (only when camera active, no preview) */}
         {mode === "camera" && cameraReady && !preview && (
           <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+            {/* Scanning line animation */}
+            <div className="absolute inset-0 w-full">
+              <div className="absolute left-0 right-0 h-[2px] bg-gradient-to-b from-accent-green/50 to-transparent animate-scan-line" />
+            </div>
+
             {/* Corner brackets */}
             <div className="absolute top-8 left-8 w-6 h-6 border-t-2 border-l-2 border-accent-green/60" />
             <div className="absolute top-8 right-8 w-6 h-6 border-t-2 border-r-2 border-accent-green/60" />
@@ -482,10 +487,13 @@ function CaptureInner() {
         {mode === "camera" && cameraReady && !preview && (
           <button
             onClick={capturePhoto}
-            className="flex h-[72px] w-[72px] items-center justify-center rounded-full border-4 border-accent-green bg-transparent transition-transform active:scale-90"
+            className="flex h-[88px] w-[88px] items-center justify-center rounded-full border-4 border-accent-green bg-transparent transition-transform active:scale-90"
             aria-label="Take photo"
+            style={{
+              boxShadow: "0 0 40px rgba(0,229,160,0.3), inset 0 0 20px rgba(0,229,160,0.1)",
+            }}
           >
-            <div className="h-[56px] w-[56px] rounded-full bg-accent-green" />
+            <div className="h-[72px] w-[72px] rounded-full bg-accent-green animate-pulse" />
           </button>
         )}
 

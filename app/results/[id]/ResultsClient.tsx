@@ -16,13 +16,18 @@ interface Props {
   isPremium: boolean;
   history: { date: string; score: number }[];
   justUpgraded?: boolean;
+  streak?: number | null;
 }
 
-export function ResultsClient({ scan, isPremium, history, justUpgraded }: Props) {
+export function ResultsClient({ scan, isPremium, history, justUpgraded, streak }: Props) {
   const mainColor = getScoreColor(scan.overall_score);
   
   // FIX BUG 2: Calculate percentile as 100 - score
   const percentile = Math.max(1, 100 - Math.floor(scan.overall_score));
+
+  // Calculate previous score for comparison
+  const previousScore = history.length >= 2 ? history[history.length - 2].score : null;
+  const scoreDiff = previousScore ? scan.overall_score - previousScore : null;
 
   const scores = {
     clarity_score: scan.clarity_score,
@@ -49,6 +54,15 @@ export function ResultsClient({ scan, isPremium, history, justUpgraded }: Props)
           <div className="mb-6 rounded-xl bg-accent-green/10 border border-accent-green/20 px-5 py-3 text-center animate-fade-up">
             <p className="text-sm font-semibold text-accent-green">
               🎉 Welcome to Mogly Premium! Your full report is unlocked.
+            </p>
+          </div>
+        )}
+
+        {/* Daily Streak */}
+        {streak && streak > 0 && (
+          <div className="mb-6 rounded-xl bg-orange-500/10 border border-orange-500/20 px-5 py-3 text-center animate-fade-up">
+            <p className="text-sm font-semibold text-orange-400">
+              🔥 {streak} day streak — Keep it up!
             </p>
           </div>
         )}
@@ -82,6 +96,33 @@ export function ResultsClient({ scan, isPremium, history, justUpgraded }: Props)
           <div className="animate-fade-up" style={{ animationDelay: "100ms" }}>
             <AnimatedScore value={scan.overall_score} color={mainColor} />
           </div>
+
+          {/* Score Comparison (for returning users) */}
+          {isPremium && previousScore !== null && scoreDiff !== null && (
+            <div
+              className={`mb-6 rounded-xl px-5 py-3 text-center animate-fade-up ${
+                scoreDiff > 0
+                  ? "bg-accent-green/10 border border-accent-green/20"
+                  : scoreDiff < 0
+                  ? "bg-amber-400/10 border border-amber-400/20"
+                  : "bg-white/[0.02] border border-white/[0.06]"
+              }`}
+              style={{ animationDelay: "240ms" }}
+            >
+              <p className={`text-sm font-semibold ${
+                scoreDiff > 0
+                  ? "text-accent-green"
+                  : scoreDiff < 0
+                  ? "text-amber-400"
+                  : "text-text-muted"
+              }`}>
+                {previousScore} → {scan.overall_score}
+                {scoreDiff > 0 && ` (+${scoreDiff} points! 🎉)`}
+                {scoreDiff < 0 && ` (${scoreDiff} points)`}
+                {scoreDiff === 0 && " (no change)"}
+              </p>
+            </div>
+          )}
 
           {/* Percentile badge - Smart Language */}
           <div
