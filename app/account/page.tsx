@@ -1,162 +1,301 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { createClient } from "@/lib/supabase";
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
-
-interface Profile {
-  subscription_status: string;
-  stripe_customer_id: string | null;
-}
+import { createClient } from "@/lib/supabase";
+import type { ScanResult } from "@/lib/scores";
 
 export default function AccountPage() {
-  const [profile, setProfile] = useState<Profile | null>(null);
-  const [userId, setUserId] = useState<string | null>(null);
+  const router = useRouter();
+  const supabase = createClient();
+
+  const [user, setUser] = useState<{ id: string; email?: string } | null>(null);
   const [loading, setLoading] = useState(true);
-  const [portalLoading, setPortalLoading] = useState(false);
+  const [mode, setMode] = useState<"signin" | "signup">("signin");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  const [formLoading, setFormLoading] = useState(false);
+
+  const [scans, setScans] = useState<ScanResult[]>([]);
+  const [totalScans, setTotalScans] = useState(0);
+  const [bestScore, setBestScore] = useState(0);
+  const [streak, setStreak] = useState(0);
 
   useEffect(() => {
-    const supabase = createClient();
-
-    async function load() {
+    const checkAuth = async () => {
       const {
-        data: { user },
-      } = await supabase.auth.getUser();
+        data: { session },
+      } = await supabase.auth.getSession();
 
-      if (!user) {
-        setLoading(false);
+      if (session?.user) {
+        setUser(session.user);
+
+        // Fetch user's scans
+        const { data: userScans } = await supabase
+          .from("scans")
+          .select("*")
+          .eq("user_id", session.user.id)
+          .order("created_at", { ascending: false });
+
+        if (userScans) {
+          setScans(userScans);
+          setTotalScans(userScans.length);
+          if (userScans.length > 0) {
+            setBestScore(Math.max(...userScans.map((s) => s.overall_score)));
+          }
+        }
+
+        // Fetch streak
+        const { data: streakData } = await supabase
+          .from("user_streaks")
+          .select("current_streak")
+          .eq("user_id", session.user.id)
+          .single();
+
+        if (streakData) {
+          setStreak(streakData.current_streak || 0);
+        }
+      }
+
+      setLoading(false);
+    };
+
+    checkAuth();
+  }, []);
+
+  const handleSignIn = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setFormLoading(true);
+    setError(null);
+
+    try {
+      const { error: signInError } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+
+      if (signInError) {
+        setError(signInError.message);
+        setFormLoading(false);
         return;
       }
 
-      setUserId(user.id);
-
-      const { data } = await supabase
-        .from("profiles")
-        .select("subscription_status, stripe_customer_id")
-        .eq("id", user.id)
-        .single();
-
-      setProfile(data);
-      setLoading(false);
-    }
-
-    load();
-  }, []);
-
-  const openPortal = async () => {
-    if (!userId || portalLoading) return;
-    setPortalLoading(true);
-
-    try {
-      const res = await fetch("/api/portal", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ userId }),
-      });
-      const data = await res.json();
-      if (data.url) {
-        window.location.href = data.url;
-      }
-    } catch {
-      alert("Something went wrong. Please try again.");
-    } finally {
-      setPortalLoading(false);
+      window.location.href = "/account";
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Sign in failed");
+      setFormLoading(false);
     }
   };
 
-  const isActive =
-    profile?.subscription_status === "active" ||
-    profile?.subscription_status === "trial";
+  const handleSignUp = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setFormLoading(true);
+    setError(null);
+
+    try {
+      if (password.length < 6) {
+        setError("Password must be at least 6 characters");
+        setFormLoading(false);
+        return;
+      }
+
+      const { error: signUpError } = await supabase.auth.signUp({
+        email,
+        password,
+      });
+
+      if (signUpError) {
+        setError(signUpError.message);
+        setFormLoading(false);
+        return;
+      }
+
+      router.push("/scan");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Sign up failed");
+      setFormLoading(false);
+    }
+  };
+
+  const handleSignOut = async () => {
+    await supabase.auth.signOut();
+    window.location.href = "/";
+  };
+
+  const getDaysAgo = (date: string): string => {
+    const scanDate = new Date(date);
+    const today = new Date();
+    const diff = Math.floor(
+      (today.getTime() - scanDate.getTime()) / (1000 * 60 * 60 * 24)
+    );
+    if (diff === 0) return "Today";
+    if (diff === 1) return "Yesterday";
+    return `${diff}d ago`;
+  };
 
   if (loading) {
     return (
       <main className="flex min-h-screen items-center justify-center bg-bg-primary">
-        <p className="text-sm text-text-muted">Loading...</p>
+        <p className="text-text-muted">Loading...</p>
       </main>
     );
   }
 
-  // Not logged in
-  if (!userId) {
+  // NOT LOGGED IN STATE
+  if (!user) {
     return (
-      <main className="flex min-h-screen flex-col items-center justify-center bg-bg-primary px-6 gap-6">
-        <h1 className="text-2xl font-bold text-text-primary">Account</h1>
-        <p className="text-sm text-text-muted text-center max-w-sm">
-          Sign in to manage your subscription and view your scan history.
-        </p>
-        <Link
-          href="/auth"
-          className="rounded-xl bg-accent-green px-8 py-3 text-sm font-bold text-black"
-        >
-          Sign In
-        </Link>
-        <Link href="/" className="text-xs text-text-muted hover:text-text-primary">
-          ← Back to home
-        </Link>
+      <main className="min-h-screen bg-bg-primary px-6 py-12 pb-24">
+        <div className="max-w-md mx-auto text-center">
+          <h1 className="text-2xl font-bold text-text-primary mb-2">Mogly</h1>
+          <p className="text-text-muted mb-8">
+            Sign in to save your scans and track your skin progress over time
+          </p>
+
+          <form
+            onSubmit={mode === "signin" ? handleSignIn : handleSignUp}
+            className="space-y-3 mb-6"
+          >
+            <input
+              type="email"
+              placeholder="Email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
+              className="w-full rounded-lg bg-white/[0.06] border border-white/[0.08] px-4 py-3 text-white placeholder-white/30 outline-none focus:border-accent-green/50"
+            />
+            <input
+              type="password"
+              placeholder="Password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+              minLength={6}
+              className="w-full rounded-lg bg-white/[0.06] border border-white/[0.08] px-4 py-3 text-white placeholder-white/30 outline-none focus:border-accent-green/50"
+            />
+
+            {error && (
+              <div className="rounded-lg bg-accent-red/10 border border-accent-red/20 p-3">
+                <p className="text-sm text-accent-red">{error}</p>
+              </div>
+            )}
+
+            <button
+              type="submit"
+              disabled={formLoading}
+              className="w-full rounded-lg bg-accent-green py-3 text-black font-bold hover:brightness-110 disabled:opacity-50"
+            >
+              {formLoading
+                ? "..."
+                : mode === "signin"
+                ? "Sign In"
+                : "Sign Up"}
+            </button>
+          </form>
+
+          <p className="text-text-muted mb-3">
+            {mode === "signin"
+              ? "Don't have an account?"
+              : "Already have an account?"}
+          </p>
+          <button
+            onClick={() => {
+              setMode(mode === "signin" ? "signup" : "signin");
+              setError(null);
+              setEmail("");
+              setPassword("");
+            }}
+            className="text-accent-green font-semibold hover:text-accent-gold"
+          >
+            {mode === "signin" ? "Sign Up" : "Sign In"}
+          </button>
+        </div>
       </main>
     );
   }
 
+  // LOGGED IN STATE
   return (
-    <main className="flex min-h-screen flex-col items-center bg-bg-primary px-6 py-16">
-      <div className="w-full max-w-md">
-        <h1 className="text-2xl font-bold text-text-primary mb-8">Account</h1>
+    <main className="min-h-screen bg-bg-primary px-6 py-8 pb-24">
+      <div className="max-w-md mx-auto">
+        <h1 className="text-2xl font-bold text-text-primary mb-1">Your Account</h1>
+        <p className="text-text-muted text-sm mb-6">{user.email}</p>
 
-        {/* Subscription status */}
-        <div className="rounded-xl bg-bg-card border border-white/[0.06] p-5 mb-6">
-          <p className="font-mono text-[10px] uppercase tracking-[0.15em] text-text-muted mb-2">
-            Subscription Status
-          </p>
-          <div className="flex items-center gap-3">
-            <span
-              className={`inline-block h-2.5 w-2.5 rounded-full ${
-                isActive ? "bg-accent-green" : "bg-text-muted"
-              }`}
-            />
-            <span className="text-base font-semibold text-text-primary capitalize">
-              {profile?.subscription_status || "Free"}
-            </span>
+        {/* Stats */}
+        <div className="grid grid-cols-3 gap-3 mb-6">
+          <div className="bg-bg-card rounded-xl p-3 text-center border border-white/[0.06]">
+            <p className="text-xl font-bold text-text-primary">{totalScans}</p>
+            <p className="text-[10px] text-text-muted mt-1">SCANS</p>
           </div>
-
-          {isActive && (
-            <p className="mt-2 text-xs text-text-muted">
-              {profile?.subscription_status === "trial"
-                ? "Your free trial is active"
-                : "Mogly Premium is active"}
-            </p>
-          )}
+          <div className="bg-bg-card rounded-xl p-3 text-center border border-white/[0.06]">
+            <p className="text-xl font-bold text-accent-green">{bestScore}</p>
+            <p className="text-[10px] text-text-muted mt-1">BEST SCORE</p>
+          </div>
+          <div className="bg-bg-card rounded-xl p-3 text-center border border-white/[0.06]">
+            <p className="text-xl font-bold text-text-primary">{streak}</p>
+            <p className="text-[10px] text-text-muted mt-1">DAY STREAK</p>
+          </div>
         </div>
 
-        {/* Actions */}
-        {isActive && profile?.stripe_customer_id ? (
-          <button
-            onClick={openPortal}
-            disabled={portalLoading}
-            className="w-full rounded-xl bg-bg-card border border-white/[0.06] py-4 text-sm font-semibold text-text-primary hover:border-white/10 transition-colors disabled:opacity-50"
-          >
-            {portalLoading ? "Loading..." : "Manage Subscription"}
-          </button>
-        ) : (
-          <div className="flex flex-col gap-3">
-            <p className="text-sm text-text-muted">
-              Upgrade to Mogly Premium for detailed skin analysis, fix plans, and product recommendations.
-            </p>
-            <Link
-              href="/"
-              className="w-full rounded-xl bg-accent-green py-4 text-center text-sm font-bold text-black"
-            >
-              Get Your Mogly Score
-            </Link>
+        {/* Scan Library */}
+        <h2 className="text-lg font-bold text-text-primary mb-4">Your Scan Library</h2>
+
+        {scans.length > 0 ? (
+          <div className="space-y-3 mb-6">
+            {scans.map((scan, idx) => {
+              const prevScore =
+                idx < scans.length - 1 ? scans[idx + 1].overall_score : null;
+              const change = prevScore ? scan.overall_score - prevScore : null;
+
+              return (
+                <Link
+                  key={scan.id}
+                  href={`/results/${scan.id}`}
+                  className="flex items-center gap-4 bg-bg-card rounded-xl p-4 border border-white/[0.06] hover:border-accent-green/20 transition-colors"
+                >
+                  <div className="w-12 h-12 rounded-full bg-gradient-to-br from-accent-green/20 to-accent-green/5 border border-accent-green/20 flex items-center justify-center flex-shrink-0">
+                    <span className="text-lg">📊</span>
+                  </div>
+                  <div className="flex-1">
+                    <p className="text-text-primary font-semibold">
+                      Score: {scan.overall_score}
+                    </p>
+                    <p className="text-text-muted text-xs">
+                      {getDaysAgo(scan.created_at)}
+                    </p>
+                  </div>
+                  {change !== null && (
+                    <div
+                      className={`text-sm font-bold ${
+                        change > 0
+                          ? "text-accent-green"
+                          : change < 0
+                          ? "text-accent-red"
+                          : "text-text-muted"
+                      }`}
+                    >
+                      {change > 0 ? "↑" : change < 0 ? "↓" : "−"}
+                      {Math.abs(change)}
+                    </div>
+                  )}
+                </Link>
+              );
+            })}
           </div>
+        ) : (
+          <p className="text-text-muted text-center py-8">
+            No scans yet. Take your first scan!
+          </p>
         )}
 
-        {/* Back link */}
-        <Link
-          href="/"
-          className="mt-8 block text-center text-xs text-text-muted hover:text-text-primary transition-colors"
+        {/* Sign Out */}
+        <button
+          onClick={handleSignOut}
+          className="w-full mt-6 py-3 rounded-xl border border-white/[0.1] text-text-muted hover:text-text-primary hover:border-white/[0.2] transition-colors"
         >
-          ← Back to home
-        </Link>
+          Sign Out
+        </button>
       </div>
     </main>
   );

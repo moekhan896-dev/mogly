@@ -10,7 +10,7 @@ export function BottomNav() {
     { icon: "📸", label: "Scan", href: "/scan" },
     { icon: "📋", label: "Routine", href: "/routine" },
     { icon: "💬", label: "Coach", href: "/coach" },
-    { icon: "🏠", label: "Home", href: "/dashboard" },
+    { icon: "👤", label: "Account", href: "/account" },
   ];
 
   return (
