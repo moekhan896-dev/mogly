@@ -1,127 +1,75 @@
 import { createClient } from "@supabase/supabase-js";
 import { NextResponse } from "next/server";
-
-const genaiKey = process.env.GEMINI_API_KEY;
-
-async function queryGemini(prompt: string): Promise<string> {
-  if (!genaiKey) {
-    return "Error: API key not configured";
-  }
-
-  try {
-    const response = await fetch(
-      "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=" +
-        genaiKey,
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          contents: [
-            {
-              parts: [{ text: prompt }],
-            },
-          ],
-        }),
-      }
-    );
-
-    if (!response.ok) {
-      console.error("Gemini API error:", response.status, await response.text());
-      return "Sorry, I'm having trouble thinking right now. Try again?";
-    }
-
-    const data = await response.json();
-    const reply =
-      data.candidates?.[0]?.content?.parts?.[0]?.text ||
-      "Sorry, I didn't understand that.";
-    return reply;
-  } catch (error) {
-    console.error("Coach API error:", error);
-    return "Sorry, something went wrong. Try again?";
-  }
-}
-
-// Verify JWT token from client
-function verifyToken(token: string): { userId: string } | null {
-  try {
-    // For now, we'll accept the token as-is since client sends it after auth
-    // In production, you'd verify the JWT signature
-    // This is simplified for MVP - the client already authenticated with Supabase
-    return { userId: token };
-  } catch {
-    return null;
-  }
-}
+import { GoogleGenerativeAI } from "@google/generative-ai";
 
 export async function POST(request: Request) {
   try {
-    const { message, userId } = await request.json();
-    
-    if (!message) {
-      return NextResponse.json({ error: "No message" }, { status: 400 });
+    const { message, scanId } = await request.json();
+
+    if (!message || !scanId) {
+      return NextResponse.json(
+        { error: "Missing message or scanId" },
+        { status: 400 }
+      );
     }
 
-    if (!userId) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
+    // Fetch scan data from Supabase using service role
     const supabase = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL || "",
-      process.env.SUPABASE_SERVICE_ROLE_KEY || ""
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!
     );
 
-    // Get user's latest scan
-    const { data: scans } = await supabase
+    const { data: scan } = await supabase
       .from("scans")
       .select("*")
-      .eq("user_id", userId)
-      .order("created_at", { ascending: false })
-      .limit(1);
+      .eq("id", scanId)
+      .single();
 
-    const latestScan = scans?.[0];
-
-    if (!latestScan) {
+    if (!scan) {
       return NextResponse.json(
-        { reply: "No scan found. Take a scan first to get personalized advice!" },
+        { reply: "I couldn't find your scan. Please take a new scan to chat with me!" },
         { status: 200 }
       );
     }
 
-    // Build system prompt with user data
-    const systemPrompt = `You are a friendly expert skincare coach named Mogly Coach. 
-The user's current skin score is ${latestScan.overall_score}/100.
-Their skin age is ${latestScan.skin_age || "unknown"}.
-${
-  latestScan.conditions?.length
-    ? `Their skin conditions are: ${latestScan.conditions
-        .map((c: { name: string; severity: string }) => `${c.name} (${c.severity})`)
-        .join(", ")}.`
-    : ""
-}
-${
-  latestScan.improvement_plan?.length
-    ? `Their current improvement plan includes: ${latestScan.improvement_plan
-        .map((p: { action: string }) => p.action)
-        .join(", ")}.`
-    : ""
-}
+    // Initialize Gemini AI
+    const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
+    const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
 
-Be specific and actionable. Reference their conditions by name. 
-Keep responses under 4 sentences. Be warm, encouraging, and scientific. 
-If recommending products, suggest specific ingredients (niacinamide, 
-salicylic acid, retinol, hyaluronic acid, etc.) and explain why at 
-a molecular level when relevant.`;
+    const systemPrompt = `You are Mogly Coach, a friendly expert skincare advisor. Here is the user's skin data:
+- Score: ${scan.overall_score || "unknown"}/100
+- Skin Age: ${scan.skin_age || "unknown"}
+- Conditions: ${scan.conditions ? JSON.stringify(scan.conditions) : "none"}
+- Treatment Plan: ${scan.improvement_plan ? JSON.stringify(scan.improvement_plan) : "none"}
+- Clarity Score: ${scan.clarity_score || 0}
+- Glow Score: ${scan.glow_score || 0}
+- Texture Score: ${scan.texture_score || 0}
+- Hydration Score: ${scan.hydration_score || 0}
+- Evenness Score: ${scan.evenness_score || 0}
+- Firmness Score: ${scan.firmness_score || 0}
 
-    const fullPrompt = `${systemPrompt}\n\nUser message: ${message}`;
+Rules:
+- Reference their specific conditions and scores in every answer
+- Recommend specific ingredients and explain why at molecular level
+- Name affordable brands (CeraVe, The Ordinary, Paula's Choice)
+- Keep responses 2-4 sentences, warm but clinical
+- End with encouragement about their progress potential`;
 
-    const reply = await queryGemini(fullPrompt);
+    const result = await model.generateContent([
+      { text: systemPrompt },
+      { text: message },
+    ]);
+
+    const reply =
+      result.response.text() ||
+      "Sorry, I had trouble processing that. Please try again!";
 
     return NextResponse.json({ reply });
   } catch (error) {
-    console.error("Coach endpoint error:", error);
+    console.error("Coach error:", error);
     return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500 }
+      { reply: "Sorry, I had trouble processing that. Please try again!" },
+      { status: 200 }
     );
   }
 }

@@ -90,28 +90,6 @@ function AuthInner() {
     }
   };
 
-  const handleGoogleAuth = async () => {
-    setLoading(true);
-    setError(null);
-
-    try {
-      const { error } = await supabase.auth.signInWithOAuth({
-        provider: "google",
-        options: {
-          redirectTo: `${window.location.origin}/auth/callback`,
-        },
-      });
-
-      if (error) {
-        setError(error.message);
-        setLoading(false);
-      }
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Google sign-in failed");
-      setLoading(false);
-    }
-  };
-
   return (
     <main className="flex min-h-screen flex-col items-center justify-center bg-bg-primary px-6">
       <div className="w-full max-w-sm">
@@ -179,26 +157,6 @@ function AuthInner() {
               : "Sign In"}
           </button>
         </form>
-
-        {/* Divider */}
-        <div className="relative mb-6">
-          <div className="absolute inset-0 flex items-center">
-            <div className="w-full border-t border-white/[0.1]"></div>
-          </div>
-          <div className="relative flex justify-center text-sm">
-            <span className="px-2 bg-bg-primary text-text-muted">or</span>
-          </div>
-        </div>
-
-        {/* Google Button */}
-        <button
-          type="button"
-          onClick={handleGoogleAuth}
-          disabled={loading}
-          className="w-full rounded-lg bg-white/[0.06] border border-white/[0.08] py-3 font-semibold text-white hover:bg-white/[0.1] disabled:opacity-50 transition-all mb-6"
-        >
-          Continue with Google
-        </button>
 
         {/* Toggle Mode */}
         <div className="text-center">

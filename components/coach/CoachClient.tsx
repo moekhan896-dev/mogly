@@ -1,6 +1,8 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
+import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { createClient } from "@/lib/supabase";
 
 interface Message {
@@ -11,17 +13,23 @@ interface Message {
 }
 
 export function CoachClient() {
+  const router = useRouter();
   const supabase = createClient();
+  
+  const [latestScan, setLatestScan] = useState<Record<string, unknown> | null>(null);
+  const [loading, setLoading] = useState(true);
+  
   const [messages, setMessages] = useState<Message[]>([
     {
       id: "welcome",
       role: "coach",
-      text: "Hey! 👋 I'm your Mogly Coach. Ask me anything about skincare — from your morning routine to specific ingredient recommendations.",
+      text: "Hi! 👋 I'm your Mogly Skin Coach. I've analyzed your skin data and I'm here to help you improve. Ask me anything!",
       timestamp: new Date(),
     },
   ]);
+  
   const [input, setInput] = useState("");
-  const [loading, setLoading] = useState(false);
+  const [sendLoading, setSendLoading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const scrollToBottom = () => {
@@ -32,12 +40,44 @@ export function CoachClient() {
     scrollToBottom();
   }, [messages]);
 
+  // Load user and scan on mount
+  useEffect(() => {
+    const loadUserData = async () => {
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+
+      if (!session?.user) {
+        router.push("/auth");
+        return;
+      }
+
+      setUser(session.user);
+
+      // Fetch latest scan
+      const { data: scans } = await supabase
+        .from("scans")
+        .select("*")
+        .eq("user_id", session.user.id)
+        .order("created_at", { ascending: false })
+        .limit(1);
+
+      if (scans && scans.length > 0) {
+        setLatestScan(scans[0]);
+      }
+
+      setLoading(false);
+    };
+
+    loadUserData();
+  }, []);
+
   const handleQuickQuestion = (question: string) => {
     setInput(question);
   };
 
   const handleSend = async () => {
-    if (!input.trim()) return;
+    if (!input.trim() || !latestScan) return;
 
     const userMessage: Message = {
       id: Date.now().toString(),
@@ -48,23 +88,15 @@ export function CoachClient() {
 
     setMessages((prev) => [...prev, userMessage]);
     setInput("");
-    setLoading(true);
+    setSendLoading(true);
 
     try {
-      // Get auth session
-      const { data: sessionData } = await supabase.auth.getSession();
-      if (!sessionData.session?.user?.id) {
-        throw new Error("Not authenticated");
-      }
-
       const response = await fetch("/api/coach", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ 
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
           message: input,
-          userId: sessionData.session.user.id,
+          scanId: latestScan.id,
         }),
       });
 
@@ -92,16 +124,46 @@ export function CoachClient() {
       };
       setMessages((prev) => [...prev, errorMessage]);
     } finally {
-      setLoading(false);
+      setSendLoading(false);
     }
   };
 
   const quickQuestions = [
-    "Morning routine?",
-    "Ingredients to avoid?",
-    "How to improve my score?",
-    "Foods for my skin?",
+    "What should my morning routine be?",
+    "What ingredients should I avoid?",
+    "How can I improve my score?",
+    "What foods help my skin?",
   ];
+
+  if (loading) {
+    return (
+      <main className="flex min-h-screen items-center justify-center bg-bg-primary">
+        <p className="text-text-muted">Loading your coach...</p>
+      </main>
+    );
+  }
+
+  if (!latestScan) {
+    return (
+      <main className="flex min-h-screen flex-col items-center justify-center bg-bg-primary px-6 pb-24">
+        <div className="text-center max-w-sm">
+          <p className="text-2xl mb-4">📸</p>
+          <h1 className="text-2xl font-bold text-text-primary mb-2">
+            No Scans Yet
+          </h1>
+          <p className="text-text-muted mb-6">
+            Complete your first scan to chat with your coach
+          </p>
+          <Link
+            href="/scan"
+            className="inline-block rounded-lg bg-accent-green px-6 py-3 font-bold text-black hover:brightness-110"
+          >
+            Take a Scan →
+          </Link>
+        </div>
+      </main>
+    );
+  }
 
   return (
     <main className="flex flex-col h-screen bg-bg-primary">
@@ -114,12 +176,12 @@ export function CoachClient() {
       </div>
 
       {/* Quick Questions */}
-      <div className="px-6 py-3 border-b border-white/[0.06] flex gap-2 overflow-x-auto pb-4">
+      <div className="px-6 py-3 border-b border-white/[0.06] flex gap-2 overflow-x-auto pb-4 scrollbar-hide">
         {quickQuestions.map((q) => (
           <button
             key={q}
             onClick={() => handleQuickQuestion(q)}
-            className="flex-shrink-0 rounded-full bg-accent-green/10 border border-accent-green/30 px-3 py-1.5 text-xs font-medium text-accent-green hover:bg-accent-green/20 transition-colors"
+            className="flex-shrink-0 rounded-full bg-accent-green/10 border border-accent-green/30 px-3 py-1.5 text-xs font-medium text-accent-green hover:bg-accent-green/20 transition-colors whitespace-nowrap"
           >
             {q}
           </button>
@@ -144,7 +206,7 @@ export function CoachClient() {
             </div>
           </div>
         ))}
-        {loading && (
+        {sendLoading && (
           <div className="flex justify-start">
             <div className="bg-bg-card border border-white/[0.06] text-text-primary px-4 py-2.5 rounded-2xl">
               <div className="flex gap-1">
@@ -168,11 +230,11 @@ export function CoachClient() {
             onKeyPress={(e) => e.key === "Enter" && handleSend()}
             placeholder="Ask your coach..."
             className="flex-1 rounded-full bg-white/[0.06] border border-white/[0.08] px-4 py-2.5 text-sm text-white placeholder-white/30 outline-none focus:border-accent-green/50 transition-colors"
-            disabled={loading}
+            disabled={sendLoading}
           />
           <button
             onClick={handleSend}
-            disabled={loading || !input.trim()}
+            disabled={sendLoading || !input.trim()}
             className="rounded-full bg-accent-green px-4 py-2.5 text-sm font-bold text-black hover:brightness-110 disabled:opacity-50 transition-all"
           >
             Send

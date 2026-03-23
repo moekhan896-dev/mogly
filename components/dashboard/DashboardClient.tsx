@@ -15,6 +15,16 @@ interface DashboardData {
   loading: boolean;
 }
 
+const DAILY_TIPS = [
+  "Sunscreen is non-negotiable: UV damage compounds over time. Use SPF 30+ daily, rain or shine.",
+  "Consistency beats perfection: A simple routine you use every day beats complex skincare you skip.",
+  "Hydration starts within: Drink 2-3L of water daily. Your skin is an organ, not an afterthought.",
+  "Sleep repairs: Most skin healing happens at night. Aim for 7-9 hours for visible improvements.",
+  "Don't over-exfoliate: 2-3x weekly is enough. More frequent exfoliation damages your skin barrier.",
+  "Patch test first: Always test new products on a small area before committing to full use.",
+  "Quality > quantity: 3 targeted products beat 10 random ones. Focus on your specific concerns.",
+];
+
 export function DashboardClient() {
   const router = useRouter();
   const supabase = createClient();
@@ -86,32 +96,45 @@ export function DashboardClient() {
     return `${diff} days ago`;
   };
 
+  const getDailyTip = (): string => {
+    const dayOfWeek = new Date().getDay();
+    return DAILY_TIPS[dayOfWeek];
+  };
+
   return (
     <main className="min-h-screen bg-bg-primary pb-24">
       <div className="max-w-[480px] mx-auto px-6 py-6">
-        {/* Header with Streak - Premium Styling */}
-        <div className="mb-8 flex items-center justify-between">
-          {data.streak > 0 && (
-            <div className="flex items-center gap-3">
-              <div className="relative">
-                {/* Glow effect behind streak */}
-                <div className="absolute inset-0 rounded-full bg-orange-400/30 blur-lg" />
-                <div className="relative bg-gradient-to-br from-orange-400 to-orange-500 rounded-full p-3 text-2xl">
-                  🔥
-                </div>
-              </div>
-              <div>
-                <p className="text-3xl font-bold text-text-primary">
-                  {data.streak}
-                </p>
-                <p className="text-xs text-text-muted">day streak</p>
+        {/* Header with Greeting */}
+        <div className="mb-8">
+          <h1 className="text-3xl font-bold text-text-primary">
+            Welcome back! 👋
+          </h1>
+          <p className="text-xs text-text-muted mt-1">
+            {new Date().toLocaleDateString("en-US", {
+              weekday: "long",
+              month: "long",
+              day: "numeric",
+            })}
+          </p>
+        </div>
+
+        {/* Streak Display - Premium Styling */}
+        {data.streak > 0 && (
+          <div className="mb-8 flex items-center gap-3">
+            <div className="relative">
+              <div className="absolute inset-0 rounded-full bg-orange-400/30 blur-lg" />
+              <div className="relative bg-gradient-to-br from-orange-400 to-orange-500 rounded-full p-3 text-2xl">
+                🔥
               </div>
             </div>
-          )}
-          <Link href="/profile" className="text-2xl hover:text-accent-green transition-colors duration-200">
-            ⚙️
-          </Link>
-        </div>
+            <div>
+              <p className="text-3xl font-bold text-text-primary">
+                {data.streak}
+              </p>
+              <p className="text-xs text-text-muted">day streak</p>
+            </div>
+          </div>
+        )}
 
         {/* Latest Scan Card - Premium Styling */}
         {data.latestScan && (
@@ -139,37 +162,43 @@ export function DashboardClient() {
           </div>
         )}
 
-        {/* New Scan Button - Premium Gradient with Pulse */}
+        {/* New Scan Button */}
         <Link
           href="/scan/capture"
-          className="block w-full rounded-xl bg-gradient-to-r from-accent-green via-cyan-500 to-accent-green py-4 text-center font-bold text-black text-lg mb-8 hover:shadow-lg transition-all shadow-lg hover:brightness-110 relative overflow-hidden group"
+          className="block w-full rounded-xl bg-gradient-to-r from-accent-green via-cyan-500 to-accent-green py-4 text-center font-bold text-black text-lg mb-8 hover:shadow-lg transition-all shadow-lg hover:brightness-110"
           style={{
             animation: "pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite",
           }}
         >
-          {/* Shimmer effect */}
-          <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-          <span className="relative">📸 New Scan</span>
+          <span>📸 New Scan</span>
         </Link>
 
-        {/* Daily Routine */}
-        {data.latestScan?.improvement_plan && data.latestScan.improvement_plan.length > 0 && (
-          <div className="rounded-xl bg-bg-card border border-white/[0.06] p-5 mb-6">
-            <div className="flex items-center justify-between mb-3">
-              <h2 className="font-bold text-text-primary">📋 Your Daily Routine</h2>
-              <Link
-                href="/routine"
-                className="text-xs text-accent-green hover:text-accent-green/80"
-              >
-                See Full →
-              </Link>
+        {/* Daily Tip */}
+        <div className="rounded-xl bg-accent-green/10 border border-accent-green/20 p-5 mb-6">
+          <h3 className="font-bold text-accent-green mb-2">💡 Daily Tip</h3>
+          <p className="text-sm text-text-muted leading-relaxed">
+            {getDailyTip()}
+          </p>
+        </div>
+
+        {/* Daily Routine (quick preview) */}
+        {data.latestScan?.improvement_plan &&
+          data.latestScan.improvement_plan.length > 0 && (
+            <div className="rounded-xl bg-bg-card border border-white/[0.06] p-5 mb-6">
+              <div className="flex items-center justify-between mb-3">
+                <h2 className="font-bold text-text-primary">📋 Your Daily Routine</h2>
+                <Link
+                  href="/routine"
+                  className="text-xs text-accent-green hover:text-accent-green/80"
+                >
+                  See Full →
+                </Link>
+              </div>
+              <p className="text-xs text-text-muted">
+                {data.latestScan.improvement_plan.length} steps available
+              </p>
             </div>
-            <p className="text-xs text-text-muted">
-              {data.latestScan.improvement_plan.length}/
-              {data.latestScan.improvement_plan.length} steps available
-            </p>
-          </div>
-        )}
+          )}
 
         {/* Scan History */}
         {data.allScans.length > 0 && (

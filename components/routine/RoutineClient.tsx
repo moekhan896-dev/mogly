@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { createClient } from "@/lib/supabase";
 import type { ScanResult } from "@/lib/scores";
 
@@ -16,6 +17,7 @@ interface RoutineStep {
 export function RoutineClient() {
   const router = useRouter();
   const supabase = createClient();
+  
   const [scan, setScan] = useState<ScanResult | null>(null);
   const [user, setUser] = useState<{ id: string } | null>(null);
   const [completions, setCompletions] = useState<number[]>([]);
@@ -45,17 +47,17 @@ export function RoutineClient() {
 
       if (scans && scans.length > 0) {
         setScan(scans[0]);
-      }
 
-      // Fetch today's completions
-      const { data } = await supabase
-        .from("routine_completions")
-        .select("step_number")
-        .eq("user_id", session.user.id)
-        .eq("completed_date", todayDate);
+        // Fetch today's completions
+        const { data } = await supabase
+          .from("routine_completions")
+          .select("step_number")
+          .eq("user_id", session.user.id)
+          .eq("completed_date", todayDate);
 
-      if (data) {
-        setCompletions(data.map((d) => d.step_number));
+        if (data) {
+          setCompletions(data.map((d) => d.step_number));
+        }
       }
 
       setLoading(false);
@@ -94,10 +96,32 @@ export function RoutineClient() {
     }
   };
 
-  if (loading || !user || !scan) {
+  if (loading) {
     return (
       <main className="flex min-h-screen items-center justify-center bg-bg-primary">
-        <p className="text-text-muted">Loading...</p>
+        <p className="text-text-muted">Loading your routine...</p>
+      </main>
+    );
+  }
+
+  if (!user || !scan) {
+    return (
+      <main className="flex min-h-screen flex-col items-center justify-center bg-bg-primary px-6 pb-24">
+        <div className="text-center max-w-sm">
+          <p className="text-2xl mb-4">📸</p>
+          <h1 className="text-2xl font-bold text-text-primary mb-2">
+            No Scans Yet
+          </h1>
+          <p className="text-text-muted mb-6">
+            Complete your first scan to get your personalized routine
+          </p>
+          <Link
+            href="/scan"
+            className="inline-block rounded-lg bg-accent-green px-6 py-3 font-bold text-black hover:brightness-110"
+          >
+            Scan Now →
+          </Link>
+        </div>
       </main>
     );
   }
@@ -117,7 +141,7 @@ export function RoutineClient() {
             Your Daily Routine 📋
           </h1>
           <p className="text-sm text-text-muted">
-            {completedCount}/{totalSteps} completed {completedCount === totalSteps ? "✨" : ""}
+            {completedCount}/{totalSteps} completed {completedCount === totalSteps && totalSteps > 0 ? "✨" : ""}
           </p>
         </div>
 
@@ -153,7 +177,7 @@ export function RoutineClient() {
                       }`}
                     >
                       {completions.includes(step.step) && (
-                        <span className="text-black font-bold">✓</span>
+                        <span className="text-black font-bold text-sm">✓</span>
                       )}
                     </button>
                     <div className="flex-1">
@@ -200,7 +224,7 @@ export function RoutineClient() {
                       }`}
                     >
                       {completions.includes(step.step) && (
-                        <span className="text-black font-bold">✓</span>
+                        <span className="text-black font-bold text-sm">✓</span>
                       )}
                     </button>
                     <div className="flex-1">
