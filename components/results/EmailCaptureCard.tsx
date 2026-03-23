@@ -39,7 +39,7 @@ export function EmailCaptureCard({ scanId }: EmailCaptureCardProps) {
     return (
       <div className="rounded-xl bg-accent-green/10 border border-accent-green/20 p-5 text-center">
         <p className="text-sm font-semibold text-accent-green">
-          ✅ Subscribed! We&apos;ll remind you in 7 days.
+          ✅ Subscribed! We&apos;ll email you in 7 days.
         </p>
       </div>
     );
@@ -48,10 +48,10 @@ export function EmailCaptureCard({ scanId }: EmailCaptureCardProps) {
   return (
     <div className="rounded-xl bg-bg-card p-5 text-center">
       <p className="text-sm font-semibold text-text-primary mb-1">
-        📧 Not ready to unlock? Get your weekly skin check reminder
+        📧 Get your free mini skin report
       </p>
       <p className="text-[11px] text-text-muted mb-3">
-        We&apos;ll remind you to re-scan in 7 days. Free.
+        We&apos;ll email your top 3 findings + 7-day re-scan reminder
       </p>
 
       <form onSubmit={handleSubmit} className="flex gap-2">

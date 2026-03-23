@@ -278,17 +278,35 @@ export function ResultsClient({ scan, isPremium, history, justUpgraded, streak }
                 );
               })}
             </div>
-            <p className="text-center mt-3 text-accent-gold text-[13px]">🔒 Unlock to see your full diagnosis</p>
+            <button
+              onClick={() => document.getElementById("paywall")?.scrollIntoView({ behavior: "smooth" })}
+              className="w-full text-center mt-3 rounded-lg bg-accent-gold/10 border border-accent-gold/30 py-2 px-3 text-accent-gold text-[13px] hover:bg-accent-gold/20 transition-all"
+            >
+              🔒 Unlock to see your full diagnosis
+            </button>
           </div>
 
-          {/* YOUR FIX PLAN - Real step 1 */}
+          {/* YOUR FIX PLAN - Real step 1 VISIBLE, steps 2-5 locked */}
           <div className="rounded-xl bg-bg-card p-5">
             <p className="font-mono text-[11px] tracking-[2px] text-text-muted mb-3">Treatment Protocol</p>
-            <div className="blur-sm select-none pointer-events-none">
-              <div className="rounded-lg bg-white/[0.03] p-2.5 mb-1.5 text-white text-sm">
-                {scan.improvement_plan?.[0]?.action || "Step 1: Personalized routine awaits"}
+            
+            {/* Step 1 - VISIBLE */}
+            {scan.improvement_plan?.[0] && (
+              <div className="rounded-lg bg-white/[0.03] p-2.5 mb-3 border border-accent-green/20">
+                <div className="flex items-start gap-2">
+                  <span className="flex h-5 w-5 items-center justify-center rounded-full bg-accent-green/20 text-xs font-bold text-accent-green flex-shrink-0">
+                    1
+                  </span>
+                  <div className="flex-1">
+                    <p className="text-white text-sm font-semibold">{scan.improvement_plan[0].action}</p>
+                    <p className="text-xs text-text-muted mt-1">{scan.improvement_plan[0].why}</p>
+                    <p className="text-xs text-accent-green mt-1 font-medium">{scan.improvement_plan[0].impact}</p>
+                  </div>
+                </div>
               </div>
-            </div>
+            )}
+            
+            {/* Steps 2-5 - LOCKED */}
             <p className="p-2.5 text-text-muted text-[13px]">🔒 Step 2: Locked</p>
             <p className="p-2.5 text-text-muted text-[13px]">🔒 Step 3: Locked</p>
             <p className="p-2.5 text-text-muted text-[13px]">🔒 Step 4: Locked</p>
@@ -318,7 +336,7 @@ export function ResultsClient({ scan, isPremium, history, justUpgraded, streak }
         {/* ══════════════════════════════════════ */}
         {/*  PAYWALL or PREMIUM                    */}
         {/* ══════════════════════════════════════ */}
-        {isPremium ? (
+        {isPremium || justUpgraded ? (
           <>
             <PremiumContent scan={scan} />
             {history.length > 1 && (
@@ -332,7 +350,9 @@ export function ResultsClient({ scan, isPremium, history, justUpgraded, streak }
             <div className="mb-6 animate-fade-up" style={{ animationDelay: "1300ms" }}>
               <EmailCaptureCard scanId={scan.id} />
             </div>
-            <Paywall scanId={scan.id} />
+            <div id="paywall">
+              <Paywall scanId={scan.id} />
+            </div>
           </>
         )}
 

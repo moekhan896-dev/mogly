@@ -1,21 +1,16 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { createClient } from "@/lib/supabase";
 import { analytics } from "@/lib/analytics";
 
 export function Paywall({ scanId }: { scanId: string }) {
-  const [userId, setUserId] = useState<string | null>(null);
-  const [checkingAuth, setCheckingAuth] = useState(true);
+  const [checkingAuth, setCheckingAuth] = useState(false);
   const [timeLeft, setTimeLeft] = useState<string>("24:00:00");
   const startTimeRef = useRef<number>(Date.now());
 
+  // No auth check — checkout works without login
   useEffect(() => {
-    const supabase = createClient();
-    supabase.auth.getUser().then(({ data: { user } }) => {
-      setUserId(user?.id || null);
-      setCheckingAuth(false);
-    });
+    setCheckingAuth(false);
   }, []);
 
   // Urgency timer - 24 hour countdown stored in ref
@@ -75,12 +70,8 @@ export function Paywall({ scanId }: { scanId: string }) {
   const handleCheckout = async (planId: string) => {
     analytics.checkoutClicked(planId);
 
-    // If not logged in, redirect to auth first
-    if (!userId) {
-      window.location.href = `/auth?redirect=/results/${scanId}`;
-      return;
-    }
-
+    // No auth check — go directly to Stripe checkout
+    // Stripe will collect email and card info during checkout
     try {
       const res = await fetch("/api/checkout", {
         method: "POST",
@@ -90,8 +81,11 @@ export function Paywall({ scanId }: { scanId: string }) {
       const data = await res.json();
       if (data.url) {
         window.location.href = data.url;
+      } else if (data.error) {
+        alert(`Error: ${data.error}`);
       }
-    } catch {
+    } catch (err) {
+      console.error("Checkout error:", err);
       alert("Something went wrong. Please try again.");
     }
   };
