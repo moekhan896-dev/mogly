@@ -309,7 +309,7 @@ export function ResultsClient({ scan, isPremium: initialIsPremium, history }: Pr
                   📧 Get your free mini skin report
                 </p>
                 <p className="text-[11px] text-text-muted mb-3">
-                  We'll email your top 3 findings + 7-day re-scan reminder
+                  We&apos;ll email your top 3 findings + 7-day re-scan reminder
                 </p>
                 {emailStatus === "success" ? (
                   <div className="space-y-2">
@@ -317,7 +317,7 @@ export function ResultsClient({ scan, isPremium: initialIsPremium, history }: Pr
                       ✅ Report sent! Check your email
                     </p>
                     <p className="text-[11px] text-text-muted">
-                      We'll remind you in 7 days to re-scan and track your progress
+                      We&apos;ll remind you in 7 days to re-scan and track your progress
                     </p>
                   </div>
                 ) : (

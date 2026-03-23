@@ -94,14 +94,14 @@ Their skin age is ${latestScan.skin_age || "unknown"}.
 ${
   latestScan.conditions?.length
     ? `Their skin conditions are: ${latestScan.conditions
-        .map((c: any) => `${c.name} (${c.severity})`)
+        .map((c: { name: string; severity: string }) => `${c.name} (${c.severity})`)
         .join(", ")}.`
     : ""
 }
 ${
   latestScan.improvement_plan?.length
     ? `Their current improvement plan includes: ${latestScan.improvement_plan
-        .map((p: any) => p.action)
+        .map((p: { action: string }) => p.action)
         .join(", ")}.`
     : ""
 }
