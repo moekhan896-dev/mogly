@@ -106,16 +106,16 @@ export function RoutineClient() {
 
   if (!user || !scan) {
     return (
-      <main className="flex flex-col h-screen bg-bg-primary">
-        <div className="flex flex-col items-center justify-center flex-1 px-6 pb-24 text-center">
-          <p className="text-5xl mb-4">📋</p>
-          <h2 className="text-2xl font-bold text-text-primary mb-2">Your Daily Routine</h2>
-          <p className="text-text-muted mb-8 max-w-sm">
+      <main className="flex flex-col min-h-screen bg-bg-primary pb-24">
+        <div className="flex flex-col items-center justify-center flex-1 px-6 text-center">
+          <p className="text-6xl mb-6">📋</p>
+          <h2 className="text-3xl font-bold text-text-primary mb-3">Your Daily Routine</h2>
+          <p className="text-base text-text-muted mb-8 max-w-sm leading-relaxed">
             Complete your first scan to get a personalized morning and evening skincare routine.
           </p>
           <a
             href="/scan"
-            className="rounded-xl bg-accent-green px-8 py-3 text-black font-semibold hover:brightness-110 transition-all"
+            className="inline-block rounded-xl bg-accent-green px-8 py-3 text-black font-semibold hover:brightness-110 transition-all"
           >
             Take Your First Scan
           </a>

@@ -300,43 +300,11 @@ function CaptureInner() {
 
   /* ── Main UI ── */
   return (
-    <main className="flex min-h-screen flex-col items-center justify-center bg-bg-primary px-6 py-10">
+    <main className="flex min-h-screen flex-col items-center justify-center bg-bg-primary px-6 py-10 pb-32">
       <canvas ref={canvasRef} className="hidden" />
 
-      {/* Mode toggle (when no preview) */}
-      {!preview && (
-        <div className="mb-6 flex gap-2">
-          <button
-            onClick={() => {
-              if (!cameraError) startCamera();
-              setMode("camera");
-            }}
-            className={`rounded-full px-5 py-2 text-xs font-semibold transition-colors ${
-              mode === "camera"
-                ? "bg-accent-green text-black"
-                : "bg-bg-card text-text-muted"
-            }`}
-          >
-            📸 Camera
-          </button>
-          <button
-            onClick={() => {
-              stopCamera();
-              setMode("upload");
-            }}
-            className={`rounded-full px-5 py-2 text-xs font-semibold transition-colors ${
-              mode === "upload"
-                ? "bg-accent-green text-black"
-                : "bg-bg-card text-text-muted"
-            }`}
-          >
-            📁 Upload
-          </button>
-        </div>
-      )}
-
       {/* ── Viewfinder ── */}
-      <div className="relative w-full max-w-sm aspect-[3/4] rounded-2xl overflow-hidden bg-bg-card border border-white/[0.04]">
+      <div className="relative w-full max-w-sm aspect-[3/4] rounded-2xl overflow-hidden bg-bg-card border border-white/[0.04] mb-6">
         {/* Camera feed */}
         {mode === "camera" && !preview && (
           <>
@@ -466,23 +434,59 @@ function CaptureInner() {
         )}
       </div>
 
-      {/* ── Tip text ── */}
-      <p className="mt-4 font-mono text-[11px] tracking-wider text-text-muted text-center">
-        Position face within frame • Good lighting required
-      </p>
-      <p className="mt-1 font-mono text-[10px] tracking-wider text-text-muted/60 text-center">
-        AI will analyze 10 skin health dimensions
-      </p>
+      {/* ── Tip text (only show before preview) ── */}
+      {!preview && (
+        <>
+          <p className="font-mono text-[11px] tracking-wider text-text-muted text-center">
+            Position face within frame • Good lighting required
+          </p>
+          <p className="mt-1 font-mono text-[10px] tracking-wider text-text-muted/60 text-center">
+            AI will analyze 10 skin health dimensions
+          </p>
+        </>
+      )}
 
       {/* ── Error ── */}
       {error && (
-        <div className="mt-4 rounded-lg bg-accent-red/10 border border-accent-red/20 px-4 py-3 text-center">
+        <div className="mt-4 rounded-lg bg-accent-red/10 border border-accent-red/20 px-4 py-3 text-center w-full max-w-sm">
           <p className="text-sm text-accent-red">{error}</p>
         </div>
       )}
 
-      {/* ── Action buttons ── */}
-      <div className="mt-8 flex w-full max-w-sm flex-col items-center gap-3">
+      {/* ── Action buttons (visible at bottom) ── */}
+      <div className="mt-6 flex w-full max-w-sm flex-col items-center gap-3">
+        {/* Mode toggle (when no preview) */}
+        {!preview && (
+          <div className="mb-4 flex gap-2">
+            <button
+              onClick={() => {
+                if (!cameraError) startCamera();
+                setMode("camera");
+              }}
+              className={`rounded-full px-5 py-2 text-xs font-semibold transition-colors ${
+                mode === "camera"
+                  ? "bg-accent-green text-black"
+                  : "bg-bg-card text-text-muted"
+              }`}
+            >
+              📸 Camera
+            </button>
+            <button
+              onClick={() => {
+                stopCamera();
+                setMode("upload");
+              }}
+              className={`rounded-full px-5 py-2 text-xs font-semibold transition-colors ${
+                mode === "upload"
+                  ? "bg-accent-green text-black"
+                  : "bg-bg-card text-text-muted"
+              }`}
+            >
+              📁 Upload
+            </button>
+          </div>
+        )}
+
         {/* Camera capture button */}
         {mode === "camera" && cameraReady && !preview && (
           <button
@@ -502,14 +506,16 @@ function CaptureInner() {
           <>
             <button
               onClick={submit}
-              className="w-full rounded-xl bg-accent-green py-4 text-base font-bold text-black transition-transform hover:brightness-110 active:scale-[0.98]"
+              disabled={loading}
+              className="w-full rounded-xl bg-accent-green py-4 text-base font-bold text-black transition-transform hover:brightness-110 active:scale-[0.98] disabled:opacity-50"
               style={{ boxShadow: "0 0 30px rgba(0,229,160,0.2)" }}
             >
               ✨ Analyze My Skin
             </button>
             <button
               onClick={reset}
-              className="w-full rounded-xl bg-bg-card py-3.5 text-sm font-semibold text-text-muted transition-colors hover:text-text-primary"
+              disabled={loading}
+              className="w-full rounded-xl bg-bg-card py-3.5 text-sm font-semibold text-text-muted transition-colors hover:text-text-primary disabled:opacity-50"
             >
               ↺ {mode === "camera" ? "Retake" : "Choose Different"}
             </button>
