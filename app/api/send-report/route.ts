@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
+
 import { Resend } from 'resend';
 import { createClient } from "@supabase/supabase-js";
 import { NextResponse } from "next/server";
