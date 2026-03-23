@@ -4,8 +4,6 @@ import { Resend } from 'resend';
 import { createClient } from "@supabase/supabase-js";
 import { NextResponse } from "next/server";
 
-const resend = new Resend(process.env.RESEND_API_KEY);
-
 export async function POST(request: Request) {
   try {
     const { email, scanId } = await request.json();
@@ -13,6 +11,9 @@ export async function POST(request: Request) {
     if (!email || !scanId) {
       return NextResponse.json({ error: 'Email and scanId required' }, { status: 400 });
     }
+
+    // Initialize Resend only at request time
+    const resend = new Resend(process.env.RESEND_API_KEY);
 
     // Fetch scan data from Supabase
     const supabase = createClient(
@@ -83,7 +84,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Failed to send email' }, { status: 500 });
     }
 
-    return NextResponse.json({ success: true, messageId: result.id });
+    return NextResponse.json({ success: true });
   } catch (error) {
     console.error('Email route error:', error);
     return NextResponse.json({ error: 'Failed to send email' }, { status: 500 });
