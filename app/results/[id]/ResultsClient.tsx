@@ -12,46 +12,112 @@ import { ShareButton } from "@/components/results/ShareButton";
 import { Paywall } from "@/components/results/Paywall";
 import { PremiumContent } from "@/components/results/PremiumContent";
 import { ScoreHistory } from "@/components/results/ScoreHistory";
-import { AccountCreationModal } from "@/components/results/AccountCreationModal";
 import { BottomNav } from "@/components/ui/BottomNav";
 
 interface Props {
   scan: ScanResult;
   isPremium: boolean;
   history: { date: string; score: number }[];
-  justUpgraded?: boolean;
 }
 
-export function ResultsClient({ scan, isPremium: initialIsPremium, history, justUpgraded }: Props) {
+export function ResultsClient({ scan, isPremium: initialIsPremium, history }: Props) {
   const searchParams = useSearchParams();
   const supabase = createClient();
   
-  const [email, setEmail] = useState("");
-  const [emailStatus, setEmailStatus] = useState<"idle" | "sending" | "success" | "error">("idle");
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [isPremium, setIsPremium] = useState(initialIsPremium);
   const [showAccountModal, setShowAccountModal] = useState(false);
-  const [loading, setLoading] = useState(true);
+  const [modalEmail, setModalEmail] = useState("");
+  const [modalPassword, setModalPassword] = useState("");
+  const [modalError, setModalError] = useState<string | null>(null);
+  const [modalLoading, setModalLoading] = useState(false);
+  const [email, setEmail] = useState("");
+  const [emailStatus, setEmailStatus] = useState<"idle" | "sending" | "success" | "error">("idle");
   
   const upgraded = searchParams.get("upgraded") === "true";
 
-  // Check session on mount
+  // Check if user is logged in and should show modal
   useEffect(() => {
-    const checkSession = async () => {
+    const checkAuth = async () => {
       const { data: { session } } = await supabase.auth.getSession();
-      setIsLoggedIn(!!session);
-      setLoading(false);
-      
-      // If just upgraded and not logged in, show modal
-      if (upgraded && !session) {
+      const logged = !!session;
+      setIsLoggedIn(logged);
+
+      // If upgraded=true and NOT logged in, show modal
+      if (upgraded && !logged) {
         setShowAccountModal(true);
       }
     };
-    checkSession();
+
+    checkAuth();
   }, [upgraded]);
 
-  const mainColor = getScoreColor(scan.overall_score);
-  const percentile = Math.max(1, 100 - Math.floor(scan.overall_score));
+  const handleAccountSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!modalEmail || !modalPassword) {
+      setModalError("Email and password required");
+      return;
+    }
+    if (modalPassword.length < 6) {
+      setModalError("Password must be at least 6 characters");
+      return;
+    }
+
+    setModalLoading(true);
+    setModalError(null);
+
+    try {
+      // Sign up
+      const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
+        email: modalEmail,
+        password: modalPassword,
+      });
+
+      if (signUpError) {
+        setModalError(signUpError.message);
+        setModalLoading(false);
+        return;
+      }
+
+      if (!signUpData.user?.id) {
+        setModalError("Account creation failed");
+        setModalLoading(false);
+        return;
+      }
+
+      // Link scan to user
+      const { error: scanError } = await supabase
+        .from("scans")
+        .update({ user_id: signUpData.user.id })
+        .eq("id", scan.id);
+
+      if (scanError) {
+        console.warn("Could not link scan:", scanError);
+      }
+
+      // Mark as premium
+      const { error: profileError } = await supabase
+        .from("profiles")
+        .upsert({
+          user_id: signUpData.user.id,
+          subscription_status: "premium",
+        }, { onConflict: "user_id" });
+
+      if (profileError) {
+        console.warn("Could not update profile:", profileError);
+      }
+
+      // Account created successfully - hide modal and show premium content
+      setShowAccountModal(false);
+      setIsLoggedIn(true);
+      setIsPremium(true);
+      setModalLoading(false);
+    } catch (err) {
+      setModalError(err instanceof Error ? err.message : "Something went wrong");
+      setModalLoading(false);
+    }
+  };
 
   const handleEmailSubmit = async () => {
     if (!email || !email.includes("@")) return;
@@ -71,26 +137,61 @@ export function ResultsClient({ scan, isPremium: initialIsPremium, history, just
     }
   };
 
-  const handleAccountCreated = () => {
-    setShowAccountModal(false);
-    setIsLoggedIn(true);
-    setIsPremium(true);
-  };
+  const mainColor = getScoreColor(scan.overall_score);
+  const percentile = Math.max(1, 100 - Math.floor(scan.overall_score));
 
-  if (loading) {
+  // MODAL SHOULD APPEAR OVER EVERYTHING IF JUST UPGRADED AND NOT LOGGED IN
+  if (showAccountModal) {
     return (
-      <main className="flex min-h-screen items-center justify-center bg-bg-primary">
-        <p className="text-text-muted">Loading...</p>
-      </main>
-    );
-  }
+      <div className="fixed inset-0 z-50 bg-black/90 flex items-center justify-center p-6">
+        <div className="w-full max-w-md rounded-2xl bg-bg-card border border-accent-green/20 p-8">
+          <div className="text-center mb-6">
+            <p className="text-4xl mb-2">✅</p>
+            <h2 className="text-2xl font-bold text-white">Payment Successful!</h2>
+            <p className="text-sm text-text-muted mt-2">
+              Create your account to unlock your full results, AI Coach, Daily Routine, and Progress Tracking
+            </p>
+          </div>
 
-  // MODAL STATE: Just upgraded, not logged in
-  if (upgraded && !isLoggedIn && showAccountModal) {
-    return (
-      <>
-        <AccountCreationModal scanId={scan.id} onComplete={handleAccountCreated} />
-      </>
+          <form onSubmit={handleAccountSubmit} className="space-y-3">
+            <input
+              type="email"
+              placeholder="Email"
+              value={modalEmail}
+              onChange={(e) => setModalEmail(e.target.value)}
+              className="w-full rounded-lg bg-white/[0.06] border border-white/[0.08] px-4 py-3 text-white placeholder-white/30 outline-none focus:border-accent-green/50 text-sm"
+              required
+            />
+            <input
+              type="password"
+              placeholder="Password (6+ characters)"
+              value={modalPassword}
+              onChange={(e) => setModalPassword(e.target.value)}
+              className="w-full rounded-lg bg-white/[0.06] border border-white/[0.08] px-4 py-3 text-white placeholder-white/30 outline-none focus:border-accent-green/50 text-sm"
+              required
+              minLength={6}
+            />
+
+            {modalError && (
+              <div className="rounded-lg bg-accent-red/10 border border-accent-red/20 px-3 py-2">
+                <p className="text-xs text-accent-red">{modalError}</p>
+              </div>
+            )}
+
+            <button
+              type="submit"
+              disabled={modalLoading}
+              className="w-full rounded-xl bg-accent-green py-3 text-black font-bold text-lg hover:brightness-110 disabled:opacity-50 transition-all"
+            >
+              {modalLoading ? "Creating..." : "Create Account & View Results"}
+            </button>
+          </form>
+
+          <p className="text-xs text-text-muted text-center mt-4">
+            Your premium access is confirmed. Create an account to save your results.
+          </p>
+        </div>
+      </div>
     );
   }
 
@@ -105,22 +206,16 @@ export function ResultsClient({ scan, isPremium: initialIsPremium, history, just
       />
 
       <div className="relative z-10 mx-auto max-w-[480px] px-6 py-10 md:py-16">
-        {/* C7: Powered by dermatological AI badge */}
+        {/* Header */}
         <div className="mb-4 text-center">
           <p className="font-mono text-[8px] uppercase tracking-wider text-text-muted/40">
             Powered by dermatological AI
           </p>
         </div>
 
-        {/* ══════════════════════════════════════ */}
-        {/*  FREE SECTION — Scores (always visible) */}
-        {/* ══════════════════════════════════════ */}
+        {/* Score Section */}
         <div className="flex flex-col items-center text-center">
-          {/* Face silhouette avatar */}
-          <div
-            className="mb-5 w-16 h-16 rounded-full bg-gradient-to-b from-accent-green/20 to-accent-green/5 border-2 border-accent-green/40 flex items-center justify-center animate-fade-up"
-            style={{ animationDelay: "-100ms" }}
-          >
+          <div className="mb-5 w-16 h-16 rounded-full bg-gradient-to-b from-accent-green/20 to-accent-green/5 border-2 border-accent-green/40 flex items-center justify-center">
             <svg
               className="w-8 h-8 text-accent-green/60"
               fill="currentColor"
@@ -130,95 +225,30 @@ export function ResultsClient({ scan, isPremium: initialIsPremium, history, just
             </svg>
           </div>
 
-          {/* Label */}
-          <span
-            className="font-mono text-[11px] uppercase tracking-[3px] text-text-muted mb-5 animate-fade-up"
-            style={{ animationDelay: "0ms" }}
-          >
+          <span className="font-mono text-[11px] uppercase tracking-[3px] text-text-muted mb-5">
             Mogly Skin Analysis
           </span>
 
-          {/* Big score */}
-          <div className="animate-fade-up" style={{ animationDelay: "100ms" }}>
-            <AnimatedScore value={scan.overall_score} color={mainColor} />
-          </div>
+          <AnimatedScore value={scan.overall_score} color={mainColor} />
 
-          {/* Percentile badge */}
-          <div
-            className="mt-4 mb-4 rounded-full bg-bg-card px-4 py-1.5 text-xs text-text-muted animate-fade-up"
-            style={{ animationDelay: "200ms" }}
-          >
+          <div className="mt-4 mb-6 rounded-full bg-bg-card px-4 py-1.5 text-xs">
             <span className="font-semibold text-text-primary">
               {scan.overall_score >= 90 
                 ? `Top ${percentile}% — Exceptional skin 🔥` 
                 : scan.overall_score >= 75 
                 ? `Top ${percentile}% — Better than most ✨` 
-                : scan.overall_score >= 60 
-                ? `Top ${percentile}% — Room to improve 📈` 
-                : `Needs attention — Start your fix plan today 🚨`}
+                : `Needs attention 🚨`}
             </span>
           </div>
 
-          {/* Skin Age Badge */}
-          <div
-            className="mb-6 rounded-full bg-bg-card px-4 py-1.5 text-xs text-text-muted animate-fade-up"
-            style={{ animationDelay: "220ms" }}
-          >
-            <span className="font-semibold text-text-primary">
-              Skin Age: <span className="text-accent-gold">{scan.skin_age || "—"}</span>
-            </span>
-          </div>
-
-          {/* Score-Dependent Emotional Message */}
-          <div
-            className="mb-6 rounded-xl bg-white/[0.02] border border-white/[0.06] px-5 py-3 text-center animate-fade-up"
-            style={{ animationDelay: "250ms" }}
-          >
-            {scan.overall_score >= 85 ? (
-              <p className="text-sm text-accent-green">
-                Your skin is in excellent shape — share and flex 💪
-              </p>
-            ) : scan.overall_score >= 60 ? (
-              <p className="text-sm text-amber-400">
-                Good foundation — your plan can push you to 85+
-              </p>
-            ) : (
-              <p className="text-sm text-orange-400">
-                Users who follow their plan improve 15-20 points in 30 days
-              </p>
-            )}
-          </div>
-
-          {/* Share button */}
-          <div className="w-full mb-6 animate-fade-up" style={{ animationDelay: "300ms" }}>
+          {/* Share */}
+          <div className="w-full mb-6">
             <ShareButton data={scan} />
-          </div>
-
-          {/* Challenge button */}
-          <div className="w-full mb-8 animate-fade-up" style={{ animationDelay: "350ms" }}>
-            <button
-              onClick={() => {
-                const text = `I got a ${scan.overall_score} on my Mogly Skin Analysis. Think you can beat me? Try it free → mogly.app`;
-                if (navigator.share) {
-                  navigator.share({
-                    text,
-                    title: "Challenge me on Mogly",
-                  }).catch(() => {});
-                } else {
-                  navigator.clipboard.writeText(text);
-                }
-              }}
-              className="w-full rounded-xl bg-bg-card border border-white/[0.06] hover:border-white/10 px-5 py-3 text-sm text-text-muted text-center transition-all"
-            >
-              🎯 Challenge a friend
-            </button>
           </div>
 
           {/* How We Analyzed */}
           <div className="w-full mb-6">
-            <div className="mb-6 animate-fade-up" style={{ animationDelay: "450ms" }}>
-              <HowWeAnalyzed />
-            </div>
+            <HowWeAnalyzed />
             <SubScoresGrid scores={{
               clarity_score: scan.clarity_score,
               glow_score: scan.glow_score,
@@ -228,72 +258,11 @@ export function ResultsClient({ scan, isPremium: initialIsPremium, history, just
               firmness_score: scan.firmness_score,
             }} />
           </div>
-
-          {/* Score Killer */}
-          {scan.score_killer && (
-            <div className="w-full animate-fade-up" style={{ animationDelay: "850ms" }}>
-              <div className="h-px w-full bg-white/[0.06] mb-6" />
-              <div className="rounded-xl bg-bg-card border border-accent-red/20 px-5 py-4">
-                <div className="flex items-center gap-2 mb-3">
-                  <span className="text-sm">⚠️</span>
-                  <span className="font-mono text-[10px] uppercase tracking-[0.15em] text-accent-red">
-                    Primary Concern
-                  </span>
-                </div>
-                <p className="text-sm text-accent-red/90 leading-relaxed mb-3">
-                  {scan.score_killer}
-                </p>
-              </div>
-            </div>
-          )}
         </div>
 
-        {/* ══════════════════════════════════════ */}
-        {/*  TEASER SECTIONS (not premium)        */}
-        {/* ══════════════════════════════════════ */}
-        {!isPremium && (
-          <div className="mt-6 space-y-4">
-            {/* Diagnostic Findings - Blurred */}
-            <div className="rounded-xl bg-bg-card p-5">
-              <p className="font-mono text-[11px] tracking-[2px] text-text-muted mb-3">Diagnostic Findings</p>
-              <div className="blur-sm select-none pointer-events-none space-y-2">
-                {scan.conditions?.slice(0, 3).map((cond: any, idx: number) => (
-                  <div key={idx} className="rounded-lg bg-white/[0.03] p-3">
-                    <span className="text-white text-sm">Hidden content</span>
-                  </div>
-                ))}
-              </div>
-              <button
-                onClick={() => document.getElementById("paywall")?.scrollIntoView({ behavior: "smooth" })}
-                className="w-full text-center mt-3 rounded-lg bg-accent-gold/10 border border-accent-gold/30 py-2 px-3 text-accent-gold text-[13px] hover:bg-accent-gold/20 transition-all"
-              >
-                🔒 Unlock Premium
-              </button>
-            </div>
-
-            {/* Treatment Protocol - Partial */}
-            <div className="rounded-xl bg-bg-card p-5">
-              <p className="font-mono text-[11px] tracking-[2px] text-text-muted mb-3">Treatment Protocol</p>
-              {scan.improvement_plan?.[0] && (
-                <div className="rounded-lg bg-white/[0.03] p-2.5 mb-3 border border-accent-green/20 border-l-2 border-l-accent-green pl-3">
-                  <p className="text-white text-sm font-semibold">{scan.improvement_plan[0].action}</p>
-                  <p className="text-xs text-text-muted mt-1">{scan.improvement_plan[0].why}</p>
-                  <p className="text-xs text-accent-green mt-1 font-medium">→ {scan.improvement_plan[0].impact}</p>
-                </div>
-              )}
-              <p className="p-2.5 text-text-muted text-[13px]">🔒 Steps 2-5: Locked</p>
-            </div>
-          </div>
-        )}
-
-        {/* ══════════════════════════════════════ */}
-        {/*  Divider                               */}
-        {/* ══════════════════════════════════════ */}
         <div className="h-px w-full bg-white/[0.06] my-8" />
 
-        {/* ══════════════════════════════════════ */}
-        {/*  PREMIUM CONTENT or PAYWALL           */}
-        {/* ══════════════════════════════════════ */}
+        {/* Content based on premium status */}
         {isPremium ? (
           <>
             <PremiumContent scan={scan} isLoggedIn={isLoggedIn} />
@@ -306,7 +275,7 @@ export function ResultsClient({ scan, isPremium: initialIsPremium, history, just
         ) : (
           <>
             {/* Email capture */}
-            <div className="mb-6 animate-fade-up" style={{ animationDelay: "1300ms" }}>
+            <div className="mb-6">
               <div className="rounded-xl bg-bg-card border border-white/[0.06] p-5 text-center">
                 <p className="text-sm font-semibold text-text-primary mb-1">
                   📧 Get your free mini skin report
@@ -330,7 +299,7 @@ export function ResultsClient({ scan, isPremium: initialIsPremium, history, just
                     <button
                       onClick={handleEmailSubmit}
                       disabled={emailStatus === "sending"}
-                      className="rounded-lg bg-accent-green px-4 py-2 text-sm font-semibold text-black hover:brightness-110 disabled:opacity-50 transition-all"
+                      className="rounded-lg bg-accent-green px-4 py-2 text-sm font-semibold text-black hover:brightness-110 disabled:opacity-50"
                     >
                       {emailStatus === "sending" ? "..." : "Notify"}
                     </button>
@@ -340,30 +309,17 @@ export function ResultsClient({ scan, isPremium: initialIsPremium, history, just
             </div>
 
             {/* Paywall */}
-            <div id="paywall">
-              <Paywall scanId={scan.id} />
-            </div>
+            <Paywall scanId={scan.id} />
           </>
         )}
 
-        {/* ══════════════════════════════════════ */}
-        {/*  Footer                                */}
-        {/* ══════════════════════════════════════ */}
+        {/* Footer */}
         <footer className="mt-12 flex flex-col items-center gap-3 pb-8">
           <span className="font-mono text-[11px] text-[#333]">mogly.app</span>
-          <div className="flex items-center gap-3 text-[10px] text-text-muted">
-            <a href="/privacy" className="hover:text-text-primary transition-colors">
-              Privacy
-            </a>
-            <span className="text-white/10">|</span>
-            <a href="/terms" className="hover:text-text-primary transition-colors">
-              Terms
-            </a>
-          </div>
         </footer>
       </div>
 
-      {/* Bottom nav only shows when logged in */}
+      {/* Bottom nav only for logged-in users */}
       {isLoggedIn && <BottomNav />}
     </main>
   );

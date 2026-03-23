@@ -118,7 +118,6 @@ export default async function ResultsPage({ params, searchParams }: PageProps) {
       scan={scan}
       isPremium={isPremium}
       history={history}
-      justUpgraded={justUpgraded}
     />
   );
 }
