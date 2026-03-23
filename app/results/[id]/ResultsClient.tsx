@@ -141,19 +141,19 @@ export function ResultsClient({ scan, isPremium: initialIsPremium, history }: Pr
   const percentile = Math.max(1, 100 - Math.floor(scan.overall_score));
 
   // MODAL SHOULD APPEAR OVER EVERYTHING IF JUST UPGRADED AND NOT LOGGED IN
-  if (showAccountModal) {
+  if (upgraded && !isLoggedIn) {
     return (
-      <div className="fixed inset-0 z-50 bg-black/90 flex items-center justify-center p-6">
+      <div className="fixed inset-0 z-50 bg-black/95 flex items-center justify-center p-6">
         <div className="w-full max-w-md rounded-2xl bg-bg-card border border-accent-green/20 p-8">
-          <div className="text-center mb-6">
-            <p className="text-4xl mb-2">✅</p>
-            <h2 className="text-2xl font-bold text-white">Payment Successful!</h2>
-            <p className="text-sm text-text-muted mt-2">
-              Create your account to unlock your full results, AI Coach, Daily Routine, and Progress Tracking
+          <div className="text-center mb-8">
+            <p className="text-5xl mb-3">✅</p>
+            <h2 className="text-2xl font-bold text-white mb-2">Payment Successful!</h2>
+            <p className="text-sm text-text-muted">
+              Create your account to unlock your full results, AI Coach, Daily Routine, and exclusive insights
             </p>
           </div>
 
-          <form onSubmit={handleAccountSubmit} className="space-y-3">
+          <form onSubmit={handleAccountSubmit} className="space-y-3 mb-4">
             <input
               type="email"
               placeholder="Email"
@@ -174,7 +174,7 @@ export function ResultsClient({ scan, isPremium: initialIsPremium, history }: Pr
 
             {modalError && (
               <div className="rounded-lg bg-accent-red/10 border border-accent-red/20 px-3 py-2">
-                <p className="text-xs text-accent-red">{modalError}</p>
+                <p className="text-xs text-accent-red text-center">{modalError}</p>
               </div>
             )}
 
@@ -187,8 +187,36 @@ export function ResultsClient({ scan, isPremium: initialIsPremium, history }: Pr
             </button>
           </form>
 
-          <p className="text-xs text-text-muted text-center mt-4">
-            Your premium access is confirmed. Create an account to save your results.
+          <div className="relative mb-4">
+            <div className="absolute inset-0 flex items-center">
+              <div className="w-full border-t border-white/[0.1]"></div>
+            </div>
+            <div className="relative flex justify-center text-sm">
+              <span className="px-2 bg-bg-card text-text-muted">or</span>
+            </div>
+          </div>
+
+          <button
+            onClick={async () => {
+              try {
+                const { error } = await supabase.auth.signInWithOAuth({
+                  provider: 'google',
+                  options: {
+                    redirectTo: `${window.location.origin}/auth/callback`,
+                  },
+                });
+                if (error) setModalError(error.message);
+              } catch (err) {
+                setModalError('Google sign-in failed');
+              }
+            }}
+            className="w-full rounded-xl bg-white/[0.06] border border-white/[0.08] py-3 text-white font-semibold hover:bg-white/[0.1] transition-all mb-3"
+          >
+            Sign in with Google
+          </button>
+
+          <p className="text-xs text-text-muted text-center">
+            Your premium access is secured. Create an account to unlock everything.
           </p>
         </div>
       </div>
@@ -281,12 +309,17 @@ export function ResultsClient({ scan, isPremium: initialIsPremium, history }: Pr
                   📧 Get your free mini skin report
                 </p>
                 <p className="text-[11px] text-text-muted mb-3">
-                  We'll email your top 3 findings
+                  We'll email your top 3 findings + 7-day re-scan reminder
                 </p>
                 {emailStatus === "success" ? (
-                  <p className="text-accent-green text-sm font-semibold">
-                    ✅ You're on the list!
-                  </p>
+                  <div className="space-y-2">
+                    <p className="text-accent-green text-sm font-semibold">
+                      ✅ Report sent! Check your email
+                    </p>
+                    <p className="text-[11px] text-text-muted">
+                      We'll remind you in 7 days to re-scan and track your progress
+                    </p>
+                  </div>
                 ) : (
                   <div className="flex gap-2">
                     <input
