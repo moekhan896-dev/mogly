@@ -30,12 +30,12 @@ export function RoutineClient() {
         data: { session },
       } = await supabase.auth.getSession();
       
+      setUser(session?.user || null);
+
       if (!session?.user) {
-        router.push("/auth");
+        setLoading(false);
         return;
       }
-
-      setUser(session.user);
 
       // Fetch user's latest scan
       const { data: scans } = await supabase
@@ -106,21 +106,19 @@ export function RoutineClient() {
 
   if (!user || !scan) {
     return (
-      <main className="flex min-h-screen flex-col items-center justify-center bg-bg-primary px-6 pb-24">
-        <div className="text-center max-w-sm">
-          <p className="text-2xl mb-4">📸</p>
-          <h1 className="text-2xl font-bold text-text-primary mb-2">
-            No Scans Yet
-          </h1>
-          <p className="text-text-muted mb-6">
-            Complete your first scan to get your personalized routine
+      <main className="flex flex-col h-screen bg-bg-primary">
+        <div className="flex flex-col items-center justify-center flex-1 px-6 pb-24 text-center">
+          <p className="text-5xl mb-4">📋</p>
+          <h2 className="text-2xl font-bold text-text-primary mb-2">Your Daily Routine</h2>
+          <p className="text-text-muted mb-8 max-w-sm">
+            Complete your first scan to get a personalized morning and evening skincare routine.
           </p>
-          <Link
+          <a
             href="/scan"
-            className="inline-block rounded-lg bg-accent-green px-6 py-3 font-bold text-black hover:brightness-110"
+            className="rounded-xl bg-accent-green px-8 py-3 text-black font-semibold hover:brightness-110 transition-all"
           >
-            Scan Now →
-          </Link>
+            Take Your First Scan
+          </a>
         </div>
       </main>
     );

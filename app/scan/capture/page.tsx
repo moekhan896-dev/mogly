@@ -505,7 +505,7 @@ function CaptureInner() {
               className="w-full rounded-xl bg-accent-green py-4 text-base font-bold text-black transition-transform hover:brightness-110 active:scale-[0.98]"
               style={{ boxShadow: "0 0 30px rgba(0,229,160,0.2)" }}
             >
-              ✓ Use This Photo
+              ✨ Analyze My Skin
             </button>
             <button
               onClick={reset}

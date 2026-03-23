@@ -44,12 +44,18 @@ export function DashboardClient() {
       } = await supabase.auth.getSession();
 
       if (!session?.user) {
-        router.push("/");
+        setData({
+          user: null,
+          streak: 0,
+          latestScan: null,
+          allScans: [],
+          loading: false,
+        });
         return;
       }
 
       // Update streak
-      const newStreak = await updateStreak(session.user.id);
+      await updateStreak(session.user.id);
 
       // Fetch user's scans
       const { data: scans } = await supabase
@@ -81,6 +87,26 @@ export function DashboardClient() {
     return (
       <main className="flex min-h-screen items-center justify-center bg-bg-primary">
         <p className="text-text-muted">Loading dashboard...</p>
+      </main>
+    );
+  }
+
+  if (!data.user) {
+    return (
+      <main className="flex flex-col h-screen bg-bg-primary">
+        <div className="flex flex-col items-center justify-center flex-1 px-6 pb-24 text-center">
+          <p className="text-5xl mb-4">🔬</p>
+          <h2 className="text-2xl font-bold text-text-primary mb-2">Welcome to Mogly</h2>
+          <p className="text-text-muted mb-8 max-w-sm">
+            Take your first AI skin analysis to unlock your personalized dashboard, coach, and routine.
+          </p>
+          <a
+            href="/scan"
+            className="rounded-xl bg-accent-green px-8 py-3 text-black font-semibold hover:brightness-110 transition-all"
+          >
+            Get Your Skin Score
+          </a>
+        </div>
       </main>
     );
   }
