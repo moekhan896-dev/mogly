@@ -304,7 +304,7 @@ function CaptureInner() {
         )}
 
         {/* Viewfinder */}
-        <div className="relative w-full max-w-sm aspect-[3/4] rounded-2xl overflow-hidden bg-bg-card border border-white/[0.04]">
+        <div className={`relative w-full max-w-sm ${!preview ? 'aspect-[3/4]' : ''} rounded-2xl overflow-hidden bg-bg-card border border-white/[0.04]`}>
           {/* Camera Feed */}
           {mode === "camera" && !preview && (
             <>
@@ -384,7 +384,12 @@ function CaptureInner() {
             <img
               src={preview}
               alt="Preview"
-              className="absolute inset-0 h-full w-full object-cover"
+              style={{
+                width: '100%',
+                maxHeight: '400px',
+                objectFit: 'cover',
+                borderRadius: '12px',
+              }}
             />
           )}
 
