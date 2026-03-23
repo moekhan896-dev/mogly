@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import { getScoreColor } from "@/lib/scores";
 import type { ScanResult } from "@/lib/scores";
 import { createClient } from "@/lib/supabase";
@@ -12,54 +12,46 @@ import { ShareButton } from "@/components/results/ShareButton";
 import { Paywall } from "@/components/results/Paywall";
 import { PremiumContent } from "@/components/results/PremiumContent";
 import { ScoreHistory } from "@/components/results/ScoreHistory";
+import { AccountCreationModal } from "@/components/results/AccountCreationModal";
+import { BottomNav } from "@/components/ui/BottomNav";
 
 interface Props {
   scan: ScanResult;
   isPremium: boolean;
   history: { date: string; score: number }[];
   justUpgraded?: boolean;
-  streak?: number | null;
 }
 
-export function ResultsClient({ scan, isPremium, history, justUpgraded, streak }: Props) {
-  const router = useRouter();
+export function ResultsClient({ scan, isPremium: initialIsPremium, history, justUpgraded }: Props) {
+  const searchParams = useSearchParams();
   const supabase = createClient();
   
   const [email, setEmail] = useState("");
   const [emailStatus, setEmailStatus] = useState<"idle" | "sending" | "success" | "error">("idle");
-  const [signupEmail, setSignupEmail] = useState("");
-  const [signupPassword, setSignupPassword] = useState("");
-  const [signupStatus, setSignupStatus] = useState<"idle" | "loading" | "error">("idle");
-  const [signupError, setSignupError] = useState<string | null>(null);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [showSignupForm, setShowSignupForm] = useState(false);
+  const [isPremium, setIsPremium] = useState(initialIsPremium);
+  const [showAccountModal, setShowAccountModal] = useState(false);
+  const [loading, setLoading] = useState(true);
   
-  // Check if user is logged in on mount
+  const upgraded = searchParams.get("upgraded") === "true";
+
+  // Check session on mount
   useEffect(() => {
     const checkSession = async () => {
       const { data: { session } } = await supabase.auth.getSession();
       setIsLoggedIn(!!session);
+      setLoading(false);
+      
+      // If just upgraded and not logged in, show modal
+      if (upgraded && !session) {
+        setShowAccountModal(true);
+      }
     };
     checkSession();
-  }, []);
+  }, [upgraded]);
 
   const mainColor = getScoreColor(scan.overall_score);
-  
-  // FIX BUG 2: Calculate percentile as 100 - score
   const percentile = Math.max(1, 100 - Math.floor(scan.overall_score));
-
-  // Calculate previous score for comparison
-  const previousScore = history.length >= 2 ? history[history.length - 2].score : null;
-  const scoreDiff = previousScore ? scan.overall_score - previousScore : null;
-
-  const scores = {
-    clarity_score: scan.clarity_score,
-    glow_score: scan.glow_score,
-    texture_score: scan.texture_score,
-    hydration_score: scan.hydration_score,
-    evenness_score: scan.evenness_score,
-    firmness_score: scan.firmness_score,
-  };
 
   const handleEmailSubmit = async () => {
     if (!email || !email.includes("@")) return;
@@ -79,58 +71,31 @@ export function ResultsClient({ scan, isPremium, history, justUpgraded, streak }
     }
   };
 
-  const handleSignup = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!signupEmail || !signupPassword) {
-      setSignupError("Please fill in all fields");
-      return;
-    }
-    if (signupPassword.length < 6) {
-      setSignupError("Password must be at least 6 characters");
-      return;
-    }
-
-    setSignupStatus("loading");
-    setSignupError(null);
-
-    try {
-      // Sign up without email confirmation
-      const { data, error } = await supabase.auth.signUp({
-        email: signupEmail,
-        password: signupPassword,
-        options: {
-          emailRedirectTo: `${window.location.origin}/auth/callback`,
-        },
-      });
-
-      if (error) throw error;
-      if (!data.user) throw new Error("Signup failed");
-
-      // Link current scan to new user
-      const { error: updateError } = await supabase
-        .from("scans")
-        .update({ user_id: data.user.id })
-        .eq("id", scan.id);
-
-      if (updateError) console.warn("Could not link scan to user:", updateError);
-
-      // Auto-redirect to dashboard
-      setIsLoggedIn(true);
-      setShowSignupForm(false);
-      router.push("/dashboard");
-      router.refresh();
-    } catch (err) {
-      console.error("Signup error:", err);
-      setSignupError(
-        err instanceof Error ? err.message : "Signup failed. Please try again."
-      );
-      setSignupStatus("error");
-      setTimeout(() => setSignupStatus("idle"), 3000);
-    }
+  const handleAccountCreated = () => {
+    setShowAccountModal(false);
+    setIsLoggedIn(true);
+    setIsPremium(true);
   };
 
+  if (loading) {
+    return (
+      <main className="flex min-h-screen items-center justify-center bg-bg-primary">
+        <p className="text-text-muted">Loading...</p>
+      </main>
+    );
+  }
+
+  // MODAL STATE: Just upgraded, not logged in
+  if (upgraded && !isLoggedIn && showAccountModal) {
+    return (
+      <>
+        <AccountCreationModal scanId={scan.id} onComplete={handleAccountCreated} />
+      </>
+    );
+  }
+
   return (
-    <main className="min-h-screen bg-bg-primary">
+    <main className="min-h-screen bg-bg-primary pb-24">
       {/* Ambient glow */}
       <div
         className="pointer-events-none fixed inset-0 z-0"
@@ -147,25 +112,8 @@ export function ResultsClient({ scan, isPremium, history, justUpgraded, streak }
           </p>
         </div>
 
-        {/* Upgrade success banner */}
-        {justUpgraded && isPremium && (
-          <div className="mb-6 rounded-xl bg-accent-green/10 border border-accent-green/20 px-5 py-3 text-center animate-fade-up">
-            <p className="text-sm font-semibold text-accent-green">
-              🎉 Welcome to Mogly Premium! Your full report is unlocked.
-            </p>
-          </div>
-        )}
-
-        {/* Daily Streak */}
-        {streak && streak > 0 && (
-          <div className="mb-6 rounded-xl bg-orange-500/10 border border-orange-500/20 px-5 py-3 text-center animate-fade-up">
-            <p className="text-sm font-semibold text-orange-400">
-              🔥 {streak} day streak — Keep it up!
-            </p>
-          </div>
-        )}
         {/* ══════════════════════════════════════ */}
-        {/*  FREE SECTION — Scores                */}
+        {/*  FREE SECTION — Scores (always visible) */}
         {/* ══════════════════════════════════════ */}
         <div className="flex flex-col items-center text-center">
           {/* Face silhouette avatar */}
@@ -195,34 +143,7 @@ export function ResultsClient({ scan, isPremium, history, justUpgraded, streak }
             <AnimatedScore value={scan.overall_score} color={mainColor} />
           </div>
 
-          {/* Score Comparison (for returning users) */}
-          {isPremium && previousScore !== null && scoreDiff !== null && (
-            <div
-              className={`mb-6 rounded-xl px-5 py-3 text-center animate-fade-up ${
-                scoreDiff > 0
-                  ? "bg-accent-green/10 border border-accent-green/20"
-                  : scoreDiff < 0
-                  ? "bg-amber-400/10 border border-amber-400/20"
-                  : "bg-white/[0.02] border border-white/[0.06]"
-              }`}
-              style={{ animationDelay: "240ms" }}
-            >
-              <p className={`text-sm font-semibold ${
-                scoreDiff > 0
-                  ? "text-accent-green"
-                  : scoreDiff < 0
-                  ? "text-amber-400"
-                  : "text-text-muted"
-              }`}>
-                {previousScore} → {scan.overall_score}
-                {scoreDiff > 0 && ` (+${scoreDiff} points! 🎉)`}
-                {scoreDiff < 0 && ` (${scoreDiff} points)`}
-                {scoreDiff === 0 && " (no change)"}
-              </p>
-            </div>
-          )}
-
-          {/* Percentile badge - Smart Language */}
+          {/* Percentile badge */}
           <div
             className="mt-4 mb-4 rounded-full bg-bg-card px-4 py-1.5 text-xs text-text-muted animate-fade-up"
             style={{ animationDelay: "200ms" }}
@@ -234,8 +155,6 @@ export function ResultsClient({ scan, isPremium, history, justUpgraded, streak }
                 ? `Top ${percentile}% — Better than most ✨` 
                 : scan.overall_score >= 60 
                 ? `Top ${percentile}% — Room to improve 📈` 
-                : scan.overall_score >= 40 
-                ? `Bottom half — Your plan can fix this 💪` 
                 : `Needs attention — Start your fix plan today 🚨`}
             </span>
           </div>
@@ -248,18 +167,6 @@ export function ResultsClient({ scan, isPremium, history, justUpgraded, streak }
             <span className="font-semibold text-text-primary">
               Skin Age: <span className="text-accent-gold">{scan.skin_age || "—"}</span>
             </span>
-            {scan.skin_age !== undefined && (
-              <>
-                <br />
-                {scan.skin_age < 20 ? (
-                  <span className="text-accent-green text-[11px]">Your skin looks 3+ years younger ✨</span>
-                ) : scan.skin_age > 30 ? (
-                  <span className="text-amber-400 text-[11px]">Your skin is aging faster than expected</span>
-                ) : (
-                  <span className="text-text-muted text-[11px]">Within average range for your age</span>
-                )}
-              </>
-            )}
           </div>
 
           {/* Score-Dependent Emotional Message */}
@@ -282,18 +189,13 @@ export function ResultsClient({ scan, isPremium, history, justUpgraded, streak }
             )}
           </div>
 
-          {/* ⭐ SHARE & CHALLENGE BUTTONS - HIGH UP FOR VIRALITY ⭐ */}
-          <div
-            className="w-full mb-6 animate-fade-up"
-            style={{ animationDelay: "300ms" }}
-          >
+          {/* Share button */}
+          <div className="w-full mb-6 animate-fade-up" style={{ animationDelay: "300ms" }}>
             <ShareButton data={scan} />
           </div>
 
-          <div
-            className="w-full mb-8 animate-fade-up"
-            style={{ animationDelay: "350ms" }}
-          >
+          {/* Challenge button */}
+          <div className="w-full mb-8 animate-fade-up" style={{ animationDelay: "350ms" }}>
             <button
               onClick={() => {
                 const text = `I got a ${scan.overall_score} on my Mogly Skin Analysis. Think you can beat me? Try it free → mogly.app`;
@@ -303,50 +205,43 @@ export function ResultsClient({ scan, isPremium, history, justUpgraded, streak }
                     title: "Challenge me on Mogly",
                   }).catch(() => {});
                 } else {
-                  navigator.clipboard.writeText(text).then(() => {
-                    alert("Challenge copied! Share it however you like.");
-                  });
+                  navigator.clipboard.writeText(text);
                 }
               }}
               className="w-full rounded-xl bg-bg-card border border-white/[0.06] hover:border-white/10 px-5 py-3 text-sm text-text-muted text-center transition-all"
             >
-              🎯 Challenge a friend — dare them to beat your score
+              🎯 Challenge a friend
             </button>
           </div>
 
-          {/* How We Analyzed You */}
+          {/* How We Analyzed */}
           <div className="w-full mb-6">
-            <div
-              className="mb-6 animate-fade-up"
-              style={{ animationDelay: "450ms" }}
-            >
+            <div className="mb-6 animate-fade-up" style={{ animationDelay: "450ms" }}>
               <HowWeAnalyzed />
             </div>
-            <SubScoresGrid scores={scores} />
+            <SubScoresGrid scores={{
+              clarity_score: scan.clarity_score,
+              glow_score: scan.glow_score,
+              texture_score: scan.texture_score,
+              hydration_score: scan.hydration_score,
+              evenness_score: scan.evenness_score,
+              firmness_score: scan.firmness_score,
+            }} />
           </div>
 
-          {/* Score Killer - Enhanced */}
+          {/* Score Killer */}
           {scan.score_killer && (
-            <div
-              className="w-full animate-fade-up"
-              style={{ animationDelay: "850ms" }}
-            >
+            <div className="w-full animate-fade-up" style={{ animationDelay: "850ms" }}>
               <div className="h-px w-full bg-white/[0.06] mb-6" />
               <div className="rounded-xl bg-bg-card border border-accent-red/20 px-5 py-4">
                 <div className="flex items-center gap-2 mb-3">
                   <span className="text-sm">⚠️</span>
                   <span className="font-mono text-[10px] uppercase tracking-[0.15em] text-accent-red">
-                    Primary Concern Detected
+                    Primary Concern
                   </span>
                 </div>
                 <p className="text-sm text-accent-red/90 leading-relaxed mb-3">
                   {scan.score_killer}
-                </p>
-                <p className="text-sm text-amber-400 mb-2">
-                  We detected {scan.conditions?.length || 1} skin concern{scan.conditions?.length !== 1 ? 's' : ''} affecting your score.
-                </p>
-                <p className="text-xs text-text-muted">
-                  Your personalized fix plan is ready →
                 </p>
               </div>
             </div>
@@ -354,147 +249,40 @@ export function ResultsClient({ scan, isPremium, history, justUpgraded, streak }
         </div>
 
         {/* ══════════════════════════════════════ */}
-        {/*  PERSONALIZED TEASER SECTIONS (FREE ONLY) */}
+        {/*  TEASER SECTIONS (not premium)        */}
         {/* ══════════════════════════════════════ */}
-        {!(isPremium || justUpgraded) && (
-        <div className="mt-6 space-y-4">
-          {/* WHAT WE FOUND - Real conditions */}
-          <div className="rounded-xl bg-bg-card p-5">
-            <p className="font-mono text-[11px] tracking-[2px] text-text-muted mb-3">Diagnostic Findings</p>
-            {/* C1: Condition count */}
-            <p className="text-xs text-text-muted mb-3">
-              We detected {scan.conditions?.length || 0} condition{scan.conditions?.length !== 1 ? "s" : ""} — unlock to see details
-            </p>
-            <div className="blur-sm select-none pointer-events-none space-y-2">
-              {scan.conditions?.slice(0, 3).map((cond: { severity: string; name: string; area?: string }, idx: number) => {
-                const severityColor = 
-                  cond.severity === 'severe' ? 'text-red-500' :
-                  cond.severity === 'moderate' ? 'text-orange-500' :
-                  'text-amber-400';
-                return (
+        {!isPremium && (
+          <div className="mt-6 space-y-4">
+            {/* Diagnostic Findings - Blurred */}
+            <div className="rounded-xl bg-bg-card p-5">
+              <p className="font-mono text-[11px] tracking-[2px] text-text-muted mb-3">Diagnostic Findings</p>
+              <div className="blur-sm select-none pointer-events-none space-y-2">
+                {scan.conditions?.slice(0, 3).map((cond: any, idx: number) => (
                   <div key={idx} className="rounded-lg bg-white/[0.03] p-3">
-                    <span className={`${severityColor} text-sm font-semibold capitalize`}>{cond.severity}</span>
-                    <span className="text-white text-sm ml-2">— {cond.name} {cond.area && `in ${cond.area}`}</span>
+                    <span className="text-white text-sm">Hidden content</span>
                   </div>
-                );
-              })}
-            </div>
-            <button
-              onClick={() => document.getElementById("paywall")?.scrollIntoView({ behavior: "smooth" })}
-              className="w-full text-center mt-3 rounded-lg bg-accent-gold/10 border border-accent-gold/30 py-2 px-3 text-accent-gold text-[13px] hover:bg-accent-gold/20 transition-all"
-            >
-              🔒 Unlock to see your full diagnosis
-            </button>
-          </div>
-
-          {/* YOUR FIX PLAN - Real step 1 VISIBLE, steps 2-5 locked */}
-          <div className="rounded-xl bg-bg-card p-5">
-            <p className="font-mono text-[11px] tracking-[2px] text-text-muted mb-3">Treatment Protocol</p>
-            
-            {/* Step 1 - VISIBLE with green left border (C2) */}
-            {scan.improvement_plan?.[0] && (
-              <div className="rounded-lg bg-white/[0.03] p-2.5 mb-3 border border-accent-green/20 border-l-2 border-l-accent-green pl-3">
-                <div className="flex items-start gap-2">
-                  <span className="flex h-5 w-5 items-center justify-center rounded-full bg-accent-green/20 text-xs font-bold text-accent-green flex-shrink-0">
-                    1
-                  </span>
-                  <div className="flex-1">
-                    <p className="text-white text-sm font-semibold">{scan.improvement_plan[0].action}</p>
-                    <p className="text-xs text-text-muted mt-1">{scan.improvement_plan[0].why}</p>
-                    <p className="text-xs text-accent-green mt-1 font-medium">{scan.improvement_plan[0].impact}</p>
-                  </div>
-                </div>
+                ))}
               </div>
-            )}
-            
-            {/* Steps 2-5 - LOCKED */}
-            <p className="p-2.5 text-text-muted text-[13px]">🔒 Step 2: Locked</p>
-            <p className="p-2.5 text-text-muted text-[13px]">🔒 Step 3: Locked</p>
-            <p className="p-2.5 text-text-muted text-[13px]">🔒 Step 4: Locked</p>
-            <p className="p-2.5 text-text-muted text-[13px]">🔒 Step 5: Locked</p>
-          </div>
-
-          {/* YOUR SCORE VS AVERAGE */}
-          <div className="rounded-xl bg-bg-card p-5 text-center">
-            <p className="font-mono text-[11px] tracking-[2px] text-text-muted mb-2">
-              We found {scan.conditions?.length || 0} conditions affecting your score
-            </p>
-            <p className="font-mono text-[11px] tracking-[2px] text-text-muted mb-3">Comparative Analysis</p>
-            <p className="text-white text-base mb-1">You: <span className="text-2xl font-bold">{scan.overall_score}</span> | Average: <span className="text-2xl font-bold">62</span></p>
-            <p className={`text-[13px] ${scan.overall_score >= 62 ? 'text-accent-green' : 'text-amber-400'}`}>
-              {scan.overall_score >= 62
-                ? "You're above average — unlock your plan to reach 85+"
-                : "Your fix plan can improve your score by 15-20 points in 30 days"}
-            </p>
-          </div>
-        </div>
-        )}
-
-        {/* ══════════════════════════════════════ */}
-        {/*  INLINE ACCOUNT CREATION (for logged-out users after premium unlock) */}
-        {/* ══════════════════════════════════════ */}
-        {justUpgraded && !isLoggedIn && (
-          <div
-            id="account-creation"
-            className="mb-6 rounded-xl bg-gradient-to-r from-accent-green/10 to-cyan-500/10 border border-accent-green/20 p-6 text-center animate-fade-up"
-            style={{ animationDelay: "1200ms" }}
-          >
-            <p className="text-lg font-bold text-white mb-2">
-              ✅ Premium Unlocked!
-            </p>
-            <p className="text-sm text-text-muted mb-4">
-              Create your account to access your Coach, Daily Routine, Progress Tracking, and Scan History
-            </p>
-            
-            {!showSignupForm ? (
               <button
-                onClick={() => setShowSignupForm(true)}
-                className="w-full rounded-xl bg-accent-green py-3 text-black font-bold hover:brightness-110 transition-all"
+                onClick={() => document.getElementById("paywall")?.scrollIntoView({ behavior: "smooth" })}
+                className="w-full text-center mt-3 rounded-lg bg-accent-gold/10 border border-accent-gold/30 py-2 px-3 text-accent-gold text-[13px] hover:bg-accent-gold/20 transition-all"
               >
-                Create Account & Access Premium
+                🔒 Unlock Premium
               </button>
-            ) : (
-              <form onSubmit={handleSignup} className="space-y-3">
-                <input
-                  type="email"
-                  value={signupEmail}
-                  onChange={(e) => setSignupEmail(e.target.value)}
-                  placeholder="Email"
-                  required
-                  className="w-full rounded-lg bg-white/[0.06] border border-white/[0.08] px-4 py-3 text-white placeholder-white/30 outline-none focus:border-accent-green/50 transition-colors text-sm"
-                />
-                <input
-                  type="password"
-                  value={signupPassword}
-                  onChange={(e) => setSignupPassword(e.target.value)}
-                  placeholder="Password (6+ characters)"
-                  required
-                  minLength={6}
-                  className="w-full rounded-lg bg-white/[0.06] border border-white/[0.08] px-4 py-3 text-white placeholder-white/30 outline-none focus:border-accent-green/50 transition-colors text-sm"
-                />
-                
-                {signupError && (
-                  <div className="rounded-lg bg-accent-red/10 border border-accent-red/20 px-3 py-2">
-                    <p className="text-xs text-accent-red">{signupError}</p>
-                  </div>
-                )}
-                
-                <button
-                  type="submit"
-                  disabled={signupStatus === "loading"}
-                  className="w-full rounded-xl bg-accent-green py-3 text-black font-bold hover:brightness-110 disabled:opacity-50 transition-all"
-                >
-                  {signupStatus === "loading" ? "Creating..." : "Create Account"}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setShowSignupForm(false)}
-                  className="w-full text-sm text-text-muted hover:text-text-primary transition-colors"
-                >
-                  Cancel
-                </button>
-              </form>
-            )}
+            </div>
+
+            {/* Treatment Protocol - Partial */}
+            <div className="rounded-xl bg-bg-card p-5">
+              <p className="font-mono text-[11px] tracking-[2px] text-text-muted mb-3">Treatment Protocol</p>
+              {scan.improvement_plan?.[0] && (
+                <div className="rounded-lg bg-white/[0.03] p-2.5 mb-3 border border-accent-green/20 border-l-2 border-l-accent-green pl-3">
+                  <p className="text-white text-sm font-semibold">{scan.improvement_plan[0].action}</p>
+                  <p className="text-xs text-text-muted mt-1">{scan.improvement_plan[0].why}</p>
+                  <p className="text-xs text-accent-green mt-1 font-medium">→ {scan.improvement_plan[0].impact}</p>
+                </div>
+              )}
+              <p className="p-2.5 text-text-muted text-[13px]">🔒 Steps 2-5: Locked</p>
+            </div>
           </div>
         )}
 
@@ -504,9 +292,9 @@ export function ResultsClient({ scan, isPremium, history, justUpgraded, streak }
         <div className="h-px w-full bg-white/[0.06] my-8" />
 
         {/* ══════════════════════════════════════ */}
-        {/*  PAYWALL or PREMIUM                    */}
+        {/*  PREMIUM CONTENT or PAYWALL           */}
         {/* ══════════════════════════════════════ */}
-        {isPremium || justUpgraded ? (
+        {isPremium ? (
           <>
             <PremiumContent scan={scan} isLoggedIn={isLoggedIn} />
             {history.length > 1 && (
@@ -517,17 +305,18 @@ export function ResultsClient({ scan, isPremium, history, justUpgraded, streak }
           </>
         ) : (
           <>
+            {/* Email capture */}
             <div className="mb-6 animate-fade-up" style={{ animationDelay: "1300ms" }}>
               <div className="rounded-xl bg-bg-card border border-white/[0.06] p-5 text-center">
                 <p className="text-sm font-semibold text-text-primary mb-1">
                   📧 Get your free mini skin report
                 </p>
                 <p className="text-[11px] text-text-muted mb-3">
-                  We&apos;ll email your top 3 findings + 7-day re-scan reminder
+                  We'll email your top 3 findings
                 </p>
                 {emailStatus === "success" ? (
                   <p className="text-accent-green text-sm font-semibold">
-                    ✅ You&apos;re on the list!
+                    ✅ You're on the list!
                   </p>
                 ) : (
                   <div className="flex gap-2">
@@ -543,12 +332,14 @@ export function ResultsClient({ scan, isPremium, history, justUpgraded, streak }
                       disabled={emailStatus === "sending"}
                       className="rounded-lg bg-accent-green px-4 py-2 text-sm font-semibold text-black hover:brightness-110 disabled:opacity-50 transition-all"
                     >
-                      {emailStatus === "sending" ? "..." : emailStatus === "error" ? "Retry" : "Notify"}
+                      {emailStatus === "sending" ? "..." : "Notify"}
                     </button>
                   </div>
                 )}
               </div>
             </div>
+
+            {/* Paywall */}
             <div id="paywall">
               <Paywall scanId={scan.id} />
             </div>
@@ -562,23 +353,18 @@ export function ResultsClient({ scan, isPremium, history, justUpgraded, streak }
           <span className="font-mono text-[11px] text-[#333]">mogly.app</span>
           <div className="flex items-center gap-3 text-[10px] text-text-muted">
             <a href="/privacy" className="hover:text-text-primary transition-colors">
-              Privacy Policy
+              Privacy
             </a>
             <span className="text-white/10">|</span>
             <a href="/terms" className="hover:text-text-primary transition-colors">
               Terms
             </a>
-            <span className="text-white/10">|</span>
-            <a href="mailto:hello@mogly.app" className="hover:text-text-primary transition-colors">
-              Contact
-            </a>
           </div>
-          <p className="text-[9px] text-text-muted/60 text-center max-w-xs leading-relaxed">
-            Mogly provides AI-powered insights for informational purposes only.
-            Not a medical diagnosis. Consult a dermatologist for persistent skin concerns.
-          </p>
         </footer>
       </div>
+
+      {/* Bottom nav only shows when logged in */}
+      {isLoggedIn && <BottomNav />}
     </main>
   );
 }

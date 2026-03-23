@@ -28,28 +28,56 @@ function AuthInner() {
 
     try {
       if (mode === "signup") {
-        const { error: signUpError } = await supabase.auth.signUp({
+        // Sign up
+        const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
           email,
           password,
           options: {
-            emailRedirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(redirectTo)}`,
+            emailRedirectTo: `${window.location.origin}/auth/callback`,
           },
         });
 
-        if (signUpError) throw signUpError;
-        
-        // Auto-redirect after signup (no email confirmation needed)
-        router.push("/dashboard");
-        router.refresh();
+        if (signUpError) {
+          setError(signUpError.message);
+          setLoading(false);
+          return;
+        }
+
+        // Check if user is auto-logged-in (email confirmation disabled)
+        const { data: { session } } = await supabase.auth.getSession();
+
+        if (session) {
+          // User is logged in, redirect to dashboard
+          window.location.href = "/dashboard";
+        } else {
+          // Fallback: try signing in explicitly
+          const { error: signInError } = await supabase.auth.signInWithPassword({
+            email,
+            password,
+          });
+
+          if (!signInError) {
+            window.location.href = "/dashboard";
+          } else {
+            setError("Account created but login failed. Try signing in.");
+            setLoading(false);
+          }
+        }
       } else {
+        // Sign in
         const { error: signInError } = await supabase.auth.signInWithPassword({
           email,
           password,
         });
 
-        if (signInError) throw signInError;
-        router.push("/dashboard");
-        router.refresh();
+        if (signInError) {
+          setError(signInError.message);
+          setLoading(false);
+          return;
+        }
+
+        // Force full page reload to refresh auth state
+        window.location.href = "/dashboard";
       }
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Something went wrong");

@@ -119,7 +119,6 @@ export default async function ResultsPage({ params, searchParams }: PageProps) {
       isPremium={isPremium}
       history={history}
       justUpgraded={justUpgraded}
-      streak={streak?.current_streak || null}
     />
   );
 }
