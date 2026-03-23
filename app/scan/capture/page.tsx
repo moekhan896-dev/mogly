@@ -274,7 +274,7 @@ function CaptureInner() {
       <canvas ref={canvasRef} className="hidden" />
 
       {/* Viewfinder Section */}
-      <div className="flex-1 flex flex-col items-center justify-center">
+      <div className="flex flex-col items-center">
         {/* Mode Toggle */}
         {!preview && (
           <div className="mb-6 flex gap-2">
@@ -303,8 +303,9 @@ function CaptureInner() {
           </div>
         )}
 
-        {/* Viewfinder */}
-        <div className={`relative w-full max-w-sm ${!preview ? 'aspect-[3/4]' : ''} rounded-2xl overflow-hidden bg-bg-card border border-white/[0.04]`}>
+        {/* Viewfinder - Only show when no preview */}
+        {!preview && (
+        <div className="relative w-full max-w-sm aspect-[3/4] rounded-2xl overflow-hidden bg-bg-card border border-white/[0.04]">
           {/* Camera Feed */}
           {mode === "camera" && !preview && (
             <>
@@ -379,20 +380,6 @@ function CaptureInner() {
             </div>
           )}
 
-          {/* Preview */}
-          {preview && (
-            <img
-              src={preview}
-              alt="Preview"
-              style={{
-                width: '100%',
-                maxHeight: '400px',
-                objectFit: 'cover',
-                borderRadius: '12px',
-              }}
-            />
-          )}
-
           {/* Face Guide */}
           {mode === "camera" && cameraReady && !preview && (
             <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
@@ -407,6 +394,23 @@ function CaptureInner() {
             </div>
           )}
         </div>
+        )}
+
+        {/* Preview - Outside overflow container */}
+        {preview && (
+          <div className="w-full max-w-sm">
+            <img
+              src={preview}
+              alt="Preview"
+              style={{
+                width: '100%',
+                maxHeight: '400px',
+                objectFit: 'cover',
+                borderRadius: '12px',
+              }}
+            />
+          </div>
+        )}
 
         {/* Tips */}
         {!preview && (
