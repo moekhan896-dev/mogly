@@ -49,7 +49,7 @@ export function ResultsClient({ scan, isPremium, history, justUpgraded, streak }
       const supabase = createClient();
       const { error } = await supabase
         .from("email_subscribers")
-        .insert({ email, scan_id: scan.id });
+        .insert({ email });
       if (error) throw error;
       setEmailStatus("success");
       setEmail("");
