@@ -92,8 +92,8 @@ export function Paywall({ scanId }: { scanId: string }) {
 
   return (
     <div className="flex flex-col gap-5 animate-fade-up" style={{ animationDelay: "1400ms" }}>
-      {/* Urgency Timer */}
-      <div className="rounded-lg bg-white/[0.05] border border-amber-400/30 px-4 py-3 text-center">
+      {/* Urgency Timer with pulsing glow (C3) */}
+      <div className="rounded-lg bg-white/[0.05] border border-amber-400/30 px-4 py-3 text-center animate-pulse-glow">
         <p className="text-xs text-text-muted mb-1">Your personalized plan expires in:</p>
         <p className="font-mono text-lg font-bold text-amber-400">{timeLeft}</p>
         <p className="text-xs text-text-muted mt-1">Unlock now to save your results</p>
@@ -129,6 +129,11 @@ export function Paywall({ scanId }: { scanId: string }) {
         ))}
       </div>
 
+      {/* C5: Social proof */}
+      <div className="rounded-lg bg-white/[0.02] border border-white/[0.06] px-4 py-2 text-center mt-2">
+        <p className="font-mono text-[10px] text-text-muted">🔬 12,847 skin analyses completed</p>
+      </div>
+
       {/* Pricing cards */}
       <div className="flex flex-col gap-3 mt-2">
         {plans.map((plan) => (
@@ -139,7 +144,7 @@ export function Paywall({ scanId }: { scanId: string }) {
             className={`relative rounded-xl px-5 py-4 text-left transition-all hover:border-white/20 disabled:opacity-50
               ${
                 plan.highlighted
-                  ? "bg-bg-card border-2 border-accent-gold/60"
+                  ? "bg-bg-card border-2 border-accent-gold/60 animate-shimmer"
                   : "bg-bg-card border border-white/[0.06] hover:border-white/10"
               }`}
             style={

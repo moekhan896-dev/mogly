@@ -1,12 +1,13 @@
 "use client";
 
+import { useState } from "react";
 import { getScoreColor } from "@/lib/scores";
 import type { ScanResult } from "@/lib/scores";
+import { createClient } from "@/lib/supabase";
 import { AnimatedScore } from "@/components/results/AnimatedScore";
 import { SubScoresGrid } from "@/components/results/SubScoresGrid";
 import { HowWeAnalyzed } from "@/components/results/HowWeAnalyzed";
 import { ShareButton } from "@/components/results/ShareButton";
-import { EmailCaptureCard } from "@/components/results/EmailCaptureCard";
 import { Paywall } from "@/components/results/Paywall";
 import { PremiumContent } from "@/components/results/PremiumContent";
 import { ScoreHistory } from "@/components/results/ScoreHistory";
@@ -20,6 +21,9 @@ interface Props {
 }
 
 export function ResultsClient({ scan, isPremium, history, justUpgraded, streak }: Props) {
+  const [email, setEmail] = useState("");
+  const [emailStatus, setEmailStatus] = useState<"idle" | "sending" | "success" | "error">("idle");
+
   const mainColor = getScoreColor(scan.overall_score);
   
   // FIX BUG 2: Calculate percentile as 100 - score
@@ -38,6 +42,25 @@ export function ResultsClient({ scan, isPremium, history, justUpgraded, streak }
     firmness_score: scan.firmness_score,
   };
 
+  const handleEmailSubmit = async () => {
+    if (!email || !email.includes("@")) return;
+    setEmailStatus("sending");
+    try {
+      const supabase = createClient();
+      const { error } = await supabase
+        .from("email_subscribers")
+        .insert({ email, scan_id: scan.id });
+      if (error) throw error;
+      setEmailStatus("success");
+      setEmail("");
+      setTimeout(() => setEmailStatus("idle"), 3000);
+    } catch (err) {
+      console.error(err);
+      setEmailStatus("error");
+      setTimeout(() => setEmailStatus("idle"), 3000);
+    }
+  };
+
   return (
     <main className="min-h-screen bg-bg-primary">
       {/* Ambient glow */}
@@ -49,6 +72,13 @@ export function ResultsClient({ scan, isPremium, history, justUpgraded, streak }
       />
 
       <div className="relative z-10 mx-auto max-w-[480px] px-6 py-10 md:py-16">
+        {/* C7: Powered by dermatological AI badge */}
+        <div className="mb-4 text-center">
+          <p className="font-mono text-[8px] uppercase tracking-wider text-text-muted/40">
+            Powered by dermatological AI
+          </p>
+        </div>
+
         {/* Upgrade success banner */}
         {justUpgraded && isPremium && (
           <div className="mb-6 rounded-xl bg-accent-green/10 border border-accent-green/20 px-5 py-3 text-center animate-fade-up">
@@ -184,7 +214,39 @@ export function ResultsClient({ scan, isPremium, history, justUpgraded, streak }
             )}
           </div>
 
-          {/* Sub-scores grid */}
+          {/* ⭐ SHARE & CHALLENGE BUTTONS - HIGH UP FOR VIRALITY ⭐ */}
+          <div
+            className="w-full mb-6 animate-fade-up"
+            style={{ animationDelay: "300ms" }}
+          >
+            <ShareButton data={scan} />
+          </div>
+
+          <div
+            className="w-full mb-8 animate-fade-up"
+            style={{ animationDelay: "350ms" }}
+          >
+            <button
+              onClick={() => {
+                const text = `I got a ${scan.overall_score} on my Mogly Skin Analysis. Think you can beat me? Try it free → mogly.app`;
+                if (navigator.share) {
+                  navigator.share({
+                    text,
+                    title: "Challenge me on Mogly",
+                  }).catch(() => {});
+                } else {
+                  navigator.clipboard.writeText(text).then(() => {
+                    alert("Challenge copied! Share it however you like.");
+                  });
+                }
+              }}
+              className="w-full rounded-xl bg-bg-card border border-white/[0.06] hover:border-white/10 px-5 py-3 text-sm text-text-muted text-center transition-all"
+            >
+              🎯 Challenge a friend — dare them to beat your score
+            </button>
+          </div>
+
+          {/* How We Analyzed You */}
           <div className="w-full mb-6">
             <div
               className="mb-6 animate-fade-up"
@@ -193,39 +255,6 @@ export function ResultsClient({ scan, isPremium, history, justUpgraded, streak }
               <HowWeAnalyzed />
             </div>
             <SubScoresGrid scores={scores} />
-          </div>
-
-          {/* Share button - moved before score killer */}
-          <div
-            className="w-full mb-8 animate-fade-up"
-            style={{ animationDelay: "750ms" }}
-          >
-            <ShareButton data={scan} />
-          </div>
-
-          {/* Challenge a friend button */}
-          <div
-            className="w-full animate-fade-up"
-            style={{ animationDelay: "800ms" }}
-          >
-            <button
-              onClick={() => {
-                const text = `I got a ${scan.overall_score} on Mogly. Think you can beat me? mogly.app`;
-                if (navigator.share) {
-                  navigator.share({
-                    text,
-                    title: "Challenge me on Mogly",
-                  }).catch(() => {});
-                } else {
-                  // Fallback: copy to clipboard
-                  navigator.clipboard.writeText(text);
-                  alert("Challenge text copied! Share it however you like.");
-                }
-              }}
-              className="w-full rounded-xl bg-bg-card border border-white/[0.06] hover:border-white/10 px-5 py-3 text-sm text-text-muted text-center transition-all"
-            >
-              🎯 Challenge a friend — dare them to beat your score
-            </button>
           </div>
 
           {/* Score Killer - Enhanced */}
@@ -264,6 +293,10 @@ export function ResultsClient({ scan, isPremium, history, justUpgraded, streak }
           {/* WHAT WE FOUND - Real conditions */}
           <div className="rounded-xl bg-bg-card p-5">
             <p className="font-mono text-[11px] tracking-[2px] text-text-muted mb-3">Diagnostic Findings</p>
+            {/* C1: Condition count */}
+            <p className="text-xs text-text-muted mb-3">
+              We detected {scan.conditions?.length || 0} condition{scan.conditions?.length !== 1 ? "s" : ""} — unlock to see details
+            </p>
             <div className="blur-sm select-none pointer-events-none space-y-2">
               {scan.conditions?.slice(0, 3).map((cond: { severity: string; name: string; area?: string }, idx: number) => {
                 const severityColor = 
@@ -290,9 +323,9 @@ export function ResultsClient({ scan, isPremium, history, justUpgraded, streak }
           <div className="rounded-xl bg-bg-card p-5">
             <p className="font-mono text-[11px] tracking-[2px] text-text-muted mb-3">Treatment Protocol</p>
             
-            {/* Step 1 - VISIBLE */}
+            {/* Step 1 - VISIBLE with green left border (C2) */}
             {scan.improvement_plan?.[0] && (
-              <div className="rounded-lg bg-white/[0.03] p-2.5 mb-3 border border-accent-green/20">
+              <div className="rounded-lg bg-white/[0.03] p-2.5 mb-3 border border-accent-green/20 border-l-2 border-l-accent-green pl-3">
                 <div className="flex items-start gap-2">
                   <span className="flex h-5 w-5 items-center justify-center rounded-full bg-accent-green/20 text-xs font-bold text-accent-green flex-shrink-0">
                     1
@@ -348,7 +381,36 @@ export function ResultsClient({ scan, isPremium, history, justUpgraded, streak }
         ) : (
           <>
             <div className="mb-6 animate-fade-up" style={{ animationDelay: "1300ms" }}>
-              <EmailCaptureCard scanId={scan.id} />
+              <div className="rounded-xl bg-bg-card border border-white/[0.06] p-5 text-center">
+                <p className="text-sm font-semibold text-text-primary mb-1">
+                  📧 Get your free mini skin report
+                </p>
+                <p className="text-[11px] text-text-muted mb-3">
+                  We&apos;ll email your top 3 findings + 7-day re-scan reminder
+                </p>
+                {emailStatus === "success" ? (
+                  <p className="text-accent-green text-sm font-semibold">
+                    ✅ You&apos;re on the list!
+                  </p>
+                ) : (
+                  <div className="flex gap-2">
+                    <input
+                      type="email"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      placeholder="you@example.com"
+                      className="flex-1 rounded-lg bg-white/[0.06] border border-white/[0.08] px-3 py-2 text-sm text-white placeholder-white/30 outline-none focus:border-accent-green/50"
+                    />
+                    <button
+                      onClick={handleEmailSubmit}
+                      disabled={emailStatus === "sending"}
+                      className="rounded-lg bg-accent-green px-4 py-2 text-sm font-semibold text-black hover:brightness-110 disabled:opacity-50 transition-all"
+                    >
+                      {emailStatus === "sending" ? "..." : emailStatus === "error" ? "Retry" : "Notify"}
+                    </button>
+                  </div>
+                )}
+              </div>
             </div>
             <div id="paywall">
               <Paywall scanId={scan.id} />

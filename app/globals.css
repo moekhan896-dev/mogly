@@ -71,6 +71,41 @@ body {
   animation: scan-line 4s ease-in-out infinite;
 }
 
+/* Pulsing background glow */
+@keyframes pulse-glow {
+  0%, 100% {
+    background-color: rgba(255, 215, 0, 0.08);
+  }
+  50% {
+    background-color: rgba(255, 215, 0, 0.15);
+  }
+}
+
+.animate-pulse-glow {
+  animation: pulse-glow 2s ease-in-out infinite;
+}
+
+/* Shimmer gradient for button shine */
+@keyframes shimmer {
+  0% {
+    background-position: -1000px 0;
+  }
+  100% {
+    background-position: 1000px 0;
+  }
+}
+
+.animate-shimmer {
+  background-image: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.2),
+    transparent
+  );
+  background-size: 1000px 100%;
+  animation: shimmer 3s ease-in-out infinite;
+}
+
 /* Loading spinner — slow rotation */
 @keyframes spin-slow {
   from { transform: rotate(0deg); }
