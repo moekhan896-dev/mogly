@@ -286,9 +286,9 @@ export function ResultsClient({ scan, isPremium, history, justUpgraded, streak }
         </div>
 
         {/* ══════════════════════════════════════ */}
-        {/*  PERSONALIZED TEASER SECTIONS          */}
+        {/*  PERSONALIZED TEASER SECTIONS (FREE ONLY) */}
         {/* ══════════════════════════════════════ */}
-
+        {!(isPremium || justUpgraded) && (
         <div className="mt-6 space-y-4">
           {/* WHAT WE FOUND - Real conditions */}
           <div className="rounded-xl bg-bg-card p-5">
@@ -360,6 +360,7 @@ export function ResultsClient({ scan, isPremium, history, justUpgraded, streak }
             </p>
           </div>
         </div>
+        )}
 
         {/* ══════════════════════════════════════ */}
         {/*  Divider                               */}
