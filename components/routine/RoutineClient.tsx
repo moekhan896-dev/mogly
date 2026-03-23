@@ -106,8 +106,8 @@ export function RoutineClient() {
 
   if (!user || !scan) {
     return (
-      <main className="flex flex-col min-h-screen bg-bg-primary pb-24">
-        <div className="flex flex-col items-center justify-center flex-1 px-6 text-center">
+      <main className="w-full bg-bg-primary" style={{ minHeight: "calc(100vh - 80px)" }}>
+        <div className="flex flex-col items-center justify-center h-full px-6 text-center">
           <p className="text-6xl mb-6">📋</p>
           <h2 className="text-3xl font-bold text-text-primary mb-3">Your Daily Routine</h2>
           <p className="text-base text-text-muted mb-8 max-w-sm leading-relaxed">
