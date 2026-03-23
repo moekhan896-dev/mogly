@@ -437,7 +437,7 @@ function CaptureInner() {
             <button
               onClick={submit}
               disabled={loading}
-              className="w-full rounded-xl bg-accent-green py-4 text-base font-bold text-black hover:brightness-110 disabled:opacity-50"
+              className="w-full py-4 rounded-xl bg-[#00E5A0] text-black font-bold text-lg mt-6 hover:brightness-110 disabled:opacity-50 transition-all"
             >
               {loading ? "Analyzing..." : "✨ Analyze My Skin"}
             </button>
