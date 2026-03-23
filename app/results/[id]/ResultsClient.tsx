@@ -123,13 +123,26 @@ export function ResultsClient({ scan, isPremium: initialIsPremium, history }: Pr
     if (!email || !email.includes("@")) return;
     setEmailStatus("sending");
     try {
-      const { error } = await supabase
+      // Save to database
+      const { error: dbError } = await supabase
         .from("email_subscribers")
         .insert({ email });
-      if (error) throw error;
+      if (dbError) throw dbError;
+
+      // Send actual email report
+      const response = await fetch("/api/send-report", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, scanId: scan.id })
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to send email");
+      }
+
       setEmailStatus("success");
       setEmail("");
-      setTimeout(() => setEmailStatus("idle"), 3000);
+      setTimeout(() => setEmailStatus("idle"), 5000);
     } catch (err) {
       console.error(err);
       setEmailStatus("error");

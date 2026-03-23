@@ -20,12 +20,21 @@ export function PremiumContent({ scan, isLoggedIn = true }: Props) {
     if (!reminderEmail) return;
     setLoading(true);
     try {
+      // Save subscription
       const res = await fetch("/api/subscribe", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email: reminderEmail, scanId: scan.id }),
       });
+      
+      // Also send the report email
       if (res.ok) {
+        await fetch("/api/send-report", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email: reminderEmail, scanId: scan.id }),
+        });
+        
         setReminderSet(true);
         setReminderEmail("");
       }
