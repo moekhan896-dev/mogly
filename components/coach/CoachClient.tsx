@@ -56,12 +56,34 @@ export function CoachClient() {
       }
 
       // Fetch latest scan
-      const { data: scans } = await supabase
+      let { data: scans } = await supabase
         .from("scans")
         .select("*")
         .eq("user_id", session.user.id)
         .order("created_at", { ascending: false })
         .limit(1);
+
+      // Fallback: if no scans found, check localStorage for orphaned scan
+      if (!scans || scans.length === 0) {
+        const lastScanId = localStorage.getItem('mogly_last_scan_id');
+        if (lastScanId) {
+          const { data: orphanScan } = await supabase
+            .from('scans')
+            .select('*')
+            .eq('id', lastScanId)
+            .single();
+          
+          if (orphanScan) {
+            // Link it to this user
+            await supabase
+              .from('scans')
+              .update({ user_id: session.user.id })
+              .eq('id', lastScanId);
+            
+            scans = [orphanScan];
+          }
+        }
+      }
 
       if (scans && scans.length > 0) {
         setLatestScan(scans[0]);
@@ -155,7 +177,7 @@ export function CoachClient() {
           </p>
           <a
             href="/scan"
-            className="inline-block rounded-xl bg-accent-green px-8 py-3 text-black font-semibold hover:brightness-110 transition-all"
+            className="inline-block rounded-xl bg-accent-green px-8 py-3 text-black font-semibold text-base"
           >
             Take Your First Scan
           </a>

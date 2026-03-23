@@ -36,6 +36,11 @@ export function ResultsClient({ scan, isPremium: initialIsPremium, history }: Pr
   
   const upgraded = searchParams.get("upgraded") === "true";
 
+  // Save scan ID to localStorage for later account linking
+  useEffect(() => {
+    localStorage.setItem('mogly_last_scan_id', scan.id);
+  }, [scan.id]);
+
   // Check if user is logged in and should show modal
   useEffect(() => {
     const checkAuth = async () => {

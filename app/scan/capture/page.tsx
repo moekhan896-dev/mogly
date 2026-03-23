@@ -216,6 +216,11 @@ function CaptureInner() {
       setLoadingStep(LOADING_STEPS.length - 1);
       await new Promise((r) => setTimeout(r, 600));
 
+      // Save scan ID to localStorage for later account linking
+      if (data.scanId) {
+        localStorage.setItem('mogly_last_scan_id', data.scanId);
+      }
+
       router.push(`/results/${data.scanId || 1}`);
     } catch (err) {
       clearInterval(interval);
