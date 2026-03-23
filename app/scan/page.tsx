@@ -1,7 +1,8 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { createClient } from "@/lib/supabase";
 import { analytics } from "@/lib/analytics";
 
 /* -------------------------------------------------- */
@@ -101,6 +102,7 @@ const STEPS: Step[] = [
 export default function ScanPage() {
   const router = useRouter();
   const [step, setStep] = useState(0);
+  const [checking, setChecking] = useState(true);
   const [answers, setAnswers] = useState<Answers>({
     concern: "",
     ageRange: "",
@@ -110,6 +112,33 @@ export default function ScanPage() {
   });
   const [direction, setDirection] = useState<"forward" | "back">("forward");
   const [animating, setAnimating] = useState(false);
+
+  // Check if user already has a scan — if so, skip to capture
+  useEffect(() => {
+    const checkScanStatus = async () => {
+      const supabase = createClient();
+      const { data: { session } } = await supabase.auth.getSession();
+
+      if (session?.user) {
+        // User is logged in, check if they have a scan
+        const { data: scans } = await supabase
+          .from("scans")
+          .select("id")
+          .eq("user_id", session.user.id)
+          .limit(1);
+
+        if (scans && scans.length > 0) {
+          // User already has a scan, skip quiz and go to capture
+          router.push("/scan/capture");
+          return;
+        }
+      }
+
+      setChecking(false);
+    };
+
+    checkScanStatus();
+  }, [router]);
 
   const current = STEPS[step];
 
@@ -160,6 +189,14 @@ export default function ScanPage() {
       setAnimating(false);
     }, 250);
   }, [step, animating]);
+
+  if (checking) {
+    return (
+      <main className="flex min-h-screen items-center justify-center bg-bg-primary">
+        <p className="text-text-muted">Checking your scans...</p>
+      </main>
+    );
+  }
 
   /* Slide classes */
   const slideClass = animating
