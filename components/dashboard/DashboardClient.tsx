@@ -89,24 +89,35 @@ export function DashboardClient() {
   return (
     <main className="min-h-screen bg-bg-primary pb-24">
       <div className="max-w-[480px] mx-auto px-6 py-6">
-        {/* Header with Streak */}
+        {/* Header with Streak - Premium Styling */}
         <div className="mb-8 flex items-center justify-between">
-          <h1 className="text-3xl font-bold text-text-primary">
-            {data.streak > 0 && (
-              <span className="text-orange-400">🔥 {data.streak} day</span>
-            )}
-            {data.streak > 0 && " streak"}
-          </h1>
-          <Link href="/profile" className="text-xl hover:text-accent-green transition-colors">
+          {data.streak > 0 && (
+            <div className="flex items-center gap-3">
+              <div className="relative">
+                {/* Glow effect behind streak */}
+                <div className="absolute inset-0 rounded-full bg-orange-400/30 blur-lg" />
+                <div className="relative bg-gradient-to-br from-orange-400 to-orange-500 rounded-full p-3 text-2xl">
+                  🔥
+                </div>
+              </div>
+              <div>
+                <p className="text-3xl font-bold text-text-primary">
+                  {data.streak}
+                </p>
+                <p className="text-xs text-text-muted">day streak</p>
+              </div>
+            </div>
+          )}
+          <Link href="/profile" className="text-2xl hover:text-accent-green transition-colors duration-200">
             ⚙️
           </Link>
         </div>
 
-        {/* Latest Scan Card */}
+        {/* Latest Scan Card - Premium Styling */}
         {data.latestScan && (
-          <div className="rounded-xl bg-bg-card border border-white/[0.06] p-6 mb-6">
+          <div className="rounded-xl bg-gradient-to-br from-bg-card to-bg-card border border-l-accent-green border-t-accent-green border-r-white/[0.06] border-b-white/[0.06] p-6 mb-6 shadow-lg">
             <div className="flex items-start gap-4 mb-4">
-              <div className="w-16 h-16 rounded-full bg-gradient-to-b from-accent-green/20 to-accent-green/5 border-2 border-accent-green/40 flex items-center justify-center flex-shrink-0">
+              <div className="w-16 h-16 rounded-full bg-gradient-to-br from-accent-green/20 to-cyan-500/20 border-2 border-accent-green/40 flex items-center justify-center flex-shrink-0 shadow-lg">
                 <span className="text-2xl">🔍</span>
               </div>
               <div className="flex-1">
@@ -121,19 +132,24 @@ export function DashboardClient() {
 
             <Link
               href={`/results/${data.latestScan.id}`}
-              className="inline-block text-sm text-accent-green hover:text-accent-green/80 transition-colors font-medium"
+              className="inline-block text-sm text-accent-green hover:text-accent-gold transition-colors font-medium"
             >
               View Full Results →
             </Link>
           </div>
         )}
 
-        {/* New Scan Button */}
+        {/* New Scan Button - Premium Gradient with Pulse */}
         <Link
           href="/scan/capture"
-          className="block w-full rounded-xl bg-gradient-to-r from-accent-green to-cyan-500 py-4 text-center font-bold text-black text-lg mb-8 hover:brightness-110 transition-all shadow-lg"
+          className="block w-full rounded-xl bg-gradient-to-r from-accent-green via-cyan-500 to-accent-green py-4 text-center font-bold text-black text-lg mb-8 hover:shadow-lg transition-all shadow-lg hover:brightness-110 relative overflow-hidden group"
+          style={{
+            animation: "pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite",
+          }}
         >
-          📸 New Scan
+          {/* Shimmer effect */}
+          <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+          <span className="relative">📸 New Scan</span>
         </Link>
 
         {/* Daily Routine */}
@@ -171,9 +187,9 @@ export function DashboardClient() {
                   <Link
                     key={scan.id}
                     href={`/results/${scan.id}`}
-                    className="flex items-center gap-3 p-3 rounded-lg bg-white/[0.02] hover:bg-white/[0.06] transition-colors"
+                    className="flex items-center gap-3 p-3 rounded-lg bg-white/[0.02] hover:bg-white/[0.06] transition-colors border border-white/[0.04] hover:border-accent-green/20"
                   >
-                    <div className="w-12 h-12 rounded-lg bg-gradient-to-b from-accent-green/20 to-accent-green/5 border border-accent-green/20 flex items-center justify-center flex-shrink-0">
+                    <div className="w-12 h-12 rounded-lg bg-gradient-to-br from-accent-green/20 to-accent-green/5 border border-accent-green/20 flex items-center justify-center flex-shrink-0">
                       <span>📊</span>
                     </div>
                     <div className="flex-1 min-w-0">
@@ -186,16 +202,16 @@ export function DashboardClient() {
                     </div>
                     {change !== null && (
                       <div
-                        className={`text-sm font-bold flex-shrink-0 ${
+                        className={`text-sm font-bold flex-shrink-0 flex items-center gap-0.5 px-2 py-1 rounded-full ${
                           change > 0
-                            ? "text-accent-green"
+                            ? "bg-accent-green/10 text-accent-green"
                             : change < 0
-                            ? "text-accent-red"
-                            : "text-text-muted"
+                            ? "bg-accent-red/10 text-accent-red"
+                            : "bg-white/[0.06] text-text-muted"
                         }`}
                       >
-                        {change > 0 && "+"}
-                        {change}
+                        {change > 0 ? "↑" : change < 0 ? "↓" : "−"}
+                        {Math.abs(change)}
                       </div>
                     )}
                   </Link>

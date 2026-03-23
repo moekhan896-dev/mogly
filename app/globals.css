@@ -149,3 +149,34 @@ body {
   background: var(--text-muted);
   border-radius: 3px;
 }
+
+/* Pulse ring animation for scores */
+@keyframes pulse-ring {
+  0% {
+    box-shadow: 0 0 0 0 rgba(0, 229, 160, 0.7);
+  }
+  70% {
+    box-shadow: 0 0 0 10px rgba(0, 229, 160, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(0, 229, 160, 0);
+  }
+}
+
+.animate-pulse-ring {
+  animation: pulse-ring 2s infinite;
+}
+
+/* Subtle glow animation for premium cards */
+@keyframes glow-effect {
+  0%, 100% { 
+    box-shadow: 0 0 20px rgba(0, 229, 160, 0.1);
+  }
+  50% {
+    box-shadow: 0 0 30px rgba(0, 229, 160, 0.2);
+  }
+}
+
+.animate-glow {
+  animation: glow-effect 3s ease-in-out infinite;
+}
