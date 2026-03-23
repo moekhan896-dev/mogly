@@ -54,23 +54,6 @@ function AuthInner() {
     }
   };
 
-  const handleGoogleAuth = async () => {
-    setLoading(true);
-    setError(null);
-
-    const { error: oauthError } = await supabase.auth.signInWithOAuth({
-      provider: "google",
-      options: {
-        redirectTo: `${window.location.origin}${redirectTo}`,
-      },
-    });
-
-    if (oauthError) {
-      setError(oauthError.message);
-      setLoading(false);
-    }
-  };
-
   return (
     <main className="flex min-h-screen flex-col items-center justify-center bg-bg-primary px-6">
       <div className="w-full max-w-sm">

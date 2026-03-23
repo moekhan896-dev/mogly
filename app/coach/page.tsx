@@ -1,16 +1,24 @@
-import { createClient } from "@supabase/supabase-js";
 import { redirect } from "next/navigation";
-import { isSubscribed } from "@/lib/subscription";
-import { CoachClient } from "@/components/CoachClient";
+import { createClient } from "@/lib/supabase";
+import { CoachClient } from "./CoachClient";
 
 export const dynamic = "force-dynamic";
+export const metadata = {
+  title: "Skin Coach — Mogly",
+  description: "Get personalized skincare advice",
+};
 
 export default async function CoachPage() {
-  const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL || "",
-    process.env.SUPABASE_SERVICE_ROLE_KEY || ""
-  );
+  const supabase = createClient();
 
-  // For now, redirect to auth - in production, get user from session
-  redirect("/auth");
+  const {
+    data: { user },
+    error,
+  } = await supabase.auth.getUser();
+
+  if (error || !user) {
+    redirect("/auth");
+  }
+
+  return <CoachClient />;
 }

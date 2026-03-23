@@ -1,68 +1,118 @@
-import { createClient } from "@supabase/supabase-js";
+import { createClient } from "@/lib/supabase";
 
-export async function getOrCreateStreak(userId: string) {
-  const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL || "",
-    process.env.SUPABASE_SERVICE_ROLE_KEY || ""
-  );
+/**
+ * Update user streak on dashboard/app open
+ * - If today: do nothing (already counted)
+ * - If yesterday: increment streak
+ * - If older: reset to 1
+ * - Always update longest_streak
+ */
+export async function updateStreak() {
+  const supabase = createClient();
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) return null;
 
   const today = new Date().toISOString().split("T")[0];
 
-  // Get existing streak
-  const { data: existing } = await supabase
+  // Get or create streak record
+  const { data: streakData, error: fetchError } = await supabase
     .from("user_streaks")
     .select("*")
-    .eq("user_id", userId)
+    .eq("user_id", user.id)
     .single();
 
-  if (!existing) {
-    // Create new streak
-    const { data: newStreak } = await supabase
+  if (fetchError && fetchError.code !== "PGRST116") {
+    console.error("Error fetching streak:", fetchError);
+    return null;
+  }
+
+  // Create streak if doesn't exist
+  if (!streakData) {
+    const { data, error } = await supabase
       .from("user_streaks")
       .insert({
-        user_id: userId,
+        user_id: user.id,
         current_streak: 1,
         last_active: today,
         longest_streak: 1,
       })
       .select()
       .single();
-    return newStreak;
-  }
 
-  // Check if streak should continue or reset
-  const lastActiveDate = new Date(existing.last_active);
-  const todayDate = new Date(today);
-  const daysDiff = Math.floor(
-    (todayDate.getTime() - lastActiveDate.getTime()) / (1000 * 60 * 60 * 24)
-  );
-
-  let newStreak = existing.current_streak;
-  let newLongest = existing.longest_streak;
-
-  if (daysDiff > 1) {
-    // Streak broken
-    newStreak = 1;
-  } else if (daysDiff === 1) {
-    // Increment streak
-    newStreak = existing.current_streak + 1;
-    if (newStreak > existing.longest_streak) {
-      newLongest = newStreak;
+    if (error) {
+      console.error("Error creating streak:", error);
+      return null;
     }
+    return data;
   }
-  // else daysDiff === 0: same day, no change
 
-  // Update streak
-  const { data: updated } = await supabase
+  // Check last_active date
+  const lastActiveDate = new Date(streakData.last_active)
+    .toISOString()
+    .split("T")[0];
+  const yesterday = new Date(Date.now() - 86400000)
+    .toISOString()
+    .split("T")[0];
+
+  let newStreak = streakData.current_streak;
+
+  // Already counted today
+  if (lastActiveDate === today) {
+    return streakData;
+  }
+
+  // Increment if yesterday
+  if (lastActiveDate === yesterday) {
+    newStreak = streakData.current_streak + 1;
+  } else {
+    // Reset if older than yesterday
+    newStreak = 1;
+  }
+
+  // Update longest streak if new streak exceeds it
+  const newLongestStreak = Math.max(newStreak, streakData.longest_streak);
+
+  const { data, error } = await supabase
     .from("user_streaks")
     .update({
       current_streak: newStreak,
-      longest_streak: newLongest,
+      longest_streak: newLongestStreak,
       last_active: today,
+      updated_at: new Date().toISOString(),
     })
-    .eq("user_id", userId)
+    .eq("user_id", user.id)
     .select()
     .single();
 
-  return updated;
+  if (error) {
+    console.error("Error updating streak:", error);
+    return null;
+  }
+
+  return data;
+}
+
+/**
+ * Get user's current streak
+ */
+export async function getStreak() {
+  const supabase = createClient();
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) return null;
+
+  const { data } = await supabase
+    .from("user_streaks")
+    .select("current_streak, longest_streak")
+    .eq("user_id", user.id)
+    .single();
+
+  return data;
 }

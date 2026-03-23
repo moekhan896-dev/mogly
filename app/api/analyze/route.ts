@@ -8,6 +8,20 @@ export async function POST(req: NextRequest) {
       process.env.SUPABASE_SERVICE_ROLE_KEY || ''
     );
 
+    // Check if user is logged in
+    const authHeader = req.headers.get("authorization");
+    let userId: string | null = null;
+
+    if (authHeader?.startsWith("Bearer ")) {
+      const token = authHeader.slice(7);
+      const {
+        data: { user },
+      } = await supabase.auth.getUser(token);
+      if (user) {
+        userId = user.id;
+      }
+    }
+
     const body = await req.json();
     const { imageUrl, concern, ageRange, routineLevel, goal } = body;
     console.log("📨 Received request, imageUrl:", imageUrl);
@@ -138,7 +152,7 @@ Return exactly this structure:
         dietary_triggers: results.dietary_triggers,
         raw_ai_response: results,
         onboarding_data: { concern, ageRange, routineLevel, goal },
-        user_id: null,
+        user_id: userId,
       })
       .select("id")
       .single();

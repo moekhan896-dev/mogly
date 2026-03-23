@@ -2,7 +2,6 @@ import { createClient } from "@supabase/supabase-js";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import { isSubscribed } from "@/lib/subscription";
-import { getOrCreateStreak } from "@/lib/streaks";
 import { ResultsClient } from "./ResultsClient";
 
 function getSupabase() {
@@ -69,11 +68,12 @@ export default async function ResultsPage({ params, searchParams }: PageProps) {
   // Get or create streak for returning users
   let streak = null;
   if (scan.user_id) {
-    try {
-      streak = await getOrCreateStreak(scan.user_id);
-    } catch (err) {
-      console.error("Streak fetch error:", err);
-    }
+    const { data: streakData } = await supabase
+      .from("user_streaks")
+      .select("current_streak")
+      .eq("user_id", scan.user_id)
+      .single();
+    streak = streakData?.current_streak || null;
   }
 
   // Fetch score history if user has multiple scans
