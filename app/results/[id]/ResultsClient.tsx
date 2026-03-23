@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { getScoreColor } from "@/lib/scores";
 import type { ScanResult } from "@/lib/scores";
 import { createClient } from "@/lib/supabase";
@@ -21,8 +22,26 @@ interface Props {
 }
 
 export function ResultsClient({ scan, isPremium, history, justUpgraded, streak }: Props) {
+  const router = useRouter();
+  const supabase = createClient();
+  
   const [email, setEmail] = useState("");
   const [emailStatus, setEmailStatus] = useState<"idle" | "sending" | "success" | "error">("idle");
+  const [signupEmail, setSignupEmail] = useState("");
+  const [signupPassword, setSignupPassword] = useState("");
+  const [signupStatus, setSignupStatus] = useState<"idle" | "loading" | "error">("idle");
+  const [signupError, setSignupError] = useState<string | null>(null);
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [showSignupForm, setShowSignupForm] = useState(false);
+  
+  // Check if user is logged in on mount
+  useEffect(() => {
+    const checkSession = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      setIsLoggedIn(!!session);
+    };
+    checkSession();
+  }, []);
 
   const mainColor = getScoreColor(scan.overall_score);
   
@@ -46,7 +65,6 @@ export function ResultsClient({ scan, isPremium, history, justUpgraded, streak }
     if (!email || !email.includes("@")) return;
     setEmailStatus("sending");
     try {
-      const supabase = createClient();
       const { error } = await supabase
         .from("email_subscribers")
         .insert({ email });
@@ -58,6 +76,56 @@ export function ResultsClient({ scan, isPremium, history, justUpgraded, streak }
       console.error(err);
       setEmailStatus("error");
       setTimeout(() => setEmailStatus("idle"), 3000);
+    }
+  };
+
+  const handleSignup = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!signupEmail || !signupPassword) {
+      setSignupError("Please fill in all fields");
+      return;
+    }
+    if (signupPassword.length < 6) {
+      setSignupError("Password must be at least 6 characters");
+      return;
+    }
+
+    setSignupStatus("loading");
+    setSignupError(null);
+
+    try {
+      // Sign up without email confirmation
+      const { data, error } = await supabase.auth.signUp({
+        email: signupEmail,
+        password: signupPassword,
+        options: {
+          emailRedirectTo: `${window.location.origin}/auth/callback`,
+        },
+      });
+
+      if (error) throw error;
+      if (!data.user) throw new Error("Signup failed");
+
+      // Link current scan to new user
+      const { error: updateError } = await supabase
+        .from("scans")
+        .update({ user_id: data.user.id })
+        .eq("id", scan.id);
+
+      if (updateError) console.warn("Could not link scan to user:", updateError);
+
+      // Auto-redirect to dashboard
+      setIsLoggedIn(true);
+      setShowSignupForm(false);
+      router.push("/dashboard");
+      router.refresh();
+    } catch (err) {
+      console.error("Signup error:", err);
+      setSignupError(
+        err instanceof Error ? err.message : "Signup failed. Please try again."
+      );
+      setSignupStatus("error");
+      setTimeout(() => setSignupStatus("idle"), 3000);
     }
   };
 
@@ -363,6 +431,74 @@ export function ResultsClient({ scan, isPremium, history, justUpgraded, streak }
         )}
 
         {/* ══════════════════════════════════════ */}
+        {/*  INLINE ACCOUNT CREATION (for logged-out users after premium unlock) */}
+        {/* ══════════════════════════════════════ */}
+        {justUpgraded && !isLoggedIn && (
+          <div
+            id="account-creation"
+            className="mb-6 rounded-xl bg-gradient-to-r from-accent-green/10 to-cyan-500/10 border border-accent-green/20 p-6 text-center animate-fade-up"
+            style={{ animationDelay: "1200ms" }}
+          >
+            <p className="text-lg font-bold text-white mb-2">
+              ✅ Premium Unlocked!
+            </p>
+            <p className="text-sm text-text-muted mb-4">
+              Create your account to access your Coach, Daily Routine, Progress Tracking, and Scan History
+            </p>
+            
+            {!showSignupForm ? (
+              <button
+                onClick={() => setShowSignupForm(true)}
+                className="w-full rounded-xl bg-accent-green py-3 text-black font-bold hover:brightness-110 transition-all"
+              >
+                Create Account & Access Premium
+              </button>
+            ) : (
+              <form onSubmit={handleSignup} className="space-y-3">
+                <input
+                  type="email"
+                  value={signupEmail}
+                  onChange={(e) => setSignupEmail(e.target.value)}
+                  placeholder="Email"
+                  required
+                  className="w-full rounded-lg bg-white/[0.06] border border-white/[0.08] px-4 py-3 text-white placeholder-white/30 outline-none focus:border-accent-green/50 transition-colors text-sm"
+                />
+                <input
+                  type="password"
+                  value={signupPassword}
+                  onChange={(e) => setSignupPassword(e.target.value)}
+                  placeholder="Password (6+ characters)"
+                  required
+                  minLength={6}
+                  className="w-full rounded-lg bg-white/[0.06] border border-white/[0.08] px-4 py-3 text-white placeholder-white/30 outline-none focus:border-accent-green/50 transition-colors text-sm"
+                />
+                
+                {signupError && (
+                  <div className="rounded-lg bg-accent-red/10 border border-accent-red/20 px-3 py-2">
+                    <p className="text-xs text-accent-red">{signupError}</p>
+                  </div>
+                )}
+                
+                <button
+                  type="submit"
+                  disabled={signupStatus === "loading"}
+                  className="w-full rounded-xl bg-accent-green py-3 text-black font-bold hover:brightness-110 disabled:opacity-50 transition-all"
+                >
+                  {signupStatus === "loading" ? "Creating..." : "Create Account"}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setShowSignupForm(false)}
+                  className="w-full text-sm text-text-muted hover:text-text-primary transition-colors"
+                >
+                  Cancel
+                </button>
+              </form>
+            )}
+          </div>
+        )}
+
+        {/* ══════════════════════════════════════ */}
         {/*  Divider                               */}
         {/* ══════════════════════════════════════ */}
         <div className="h-px w-full bg-white/[0.06] my-8" />
@@ -372,7 +508,7 @@ export function ResultsClient({ scan, isPremium, history, justUpgraded, streak }
         {/* ══════════════════════════════════════ */}
         {isPremium || justUpgraded ? (
           <>
-            <PremiumContent scan={scan} />
+            <PremiumContent scan={scan} isLoggedIn={isLoggedIn} />
             {history.length > 1 && (
               <div className="mt-8">
                 <ScoreHistory data={history} />

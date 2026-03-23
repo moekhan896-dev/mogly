@@ -3,8 +3,15 @@
 import { getSeverityColor } from "@/lib/scores";
 import type { ScanResult } from "@/lib/scores";
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 
-export function PremiumContent({ scan }: { scan: ScanResult }) {
+interface Props {
+  scan: ScanResult;
+  isLoggedIn?: boolean;
+}
+
+export function PremiumContent({ scan, isLoggedIn = true }: Props) {
+  const router = useRouter();
   const [reminderSet, setReminderSet] = useState(false);
   const [reminderEmail, setReminderEmail] = useState("");
   const [loading, setLoading] = useState(false);
@@ -197,18 +204,37 @@ export function PremiumContent({ scan }: { scan: ScanResult }) {
 
       {/* Quick action buttons */}
       <div className="mt-8 flex flex-col gap-3 pt-8 border-t border-white/[0.06]">
-        <a
-          href="/dashboard"
-          className="flex items-center justify-center gap-2 rounded-xl bg-accent-gold/10 border border-accent-gold/30 py-3 text-sm font-semibold text-accent-gold transition-colors hover:bg-accent-gold/20"
-        >
-          📋 Your Daily Routine
-        </a>
-        <a
-          href="/coach"
-          className="flex items-center justify-center gap-2 rounded-xl bg-accent-green/10 border border-accent-green/30 py-3 text-sm font-semibold text-accent-green transition-colors hover:bg-accent-green/20"
-        >
-          💬 Ask Your Coach
-        </a>
+        {isLoggedIn ? (
+          <>
+            <a
+              href="/dashboard"
+              className="flex items-center justify-center gap-2 rounded-xl bg-accent-gold/10 border border-accent-gold/30 py-3 text-sm font-semibold text-accent-gold transition-colors hover:bg-accent-gold/20"
+            >
+              📋 Your Daily Routine
+            </a>
+            <a
+              href="/coach"
+              className="flex items-center justify-center gap-2 rounded-xl bg-accent-green/10 border border-accent-green/30 py-3 text-sm font-semibold text-accent-green transition-colors hover:bg-accent-green/20"
+            >
+              💬 Ask Your Coach
+            </a>
+          </>
+        ) : (
+          <>
+            <button
+              onClick={() => document.getElementById("account-creation")?.scrollIntoView({ behavior: "smooth" })}
+              className="flex items-center justify-center gap-2 rounded-xl bg-accent-gold/10 border border-accent-gold/30 py-3 text-sm font-semibold text-accent-gold transition-colors hover:bg-accent-gold/20"
+            >
+              📋 Your Daily Routine
+            </button>
+            <button
+              onClick={() => document.getElementById("account-creation")?.scrollIntoView({ behavior: "smooth" })}
+              className="flex items-center justify-center gap-2 rounded-xl bg-accent-green/10 border border-accent-green/30 py-3 text-sm font-semibold text-accent-green transition-colors hover:bg-accent-green/20"
+            >
+              💬 Ask Your Coach
+            </button>
+          </>
+        )}
       </div>
     </div>
   );

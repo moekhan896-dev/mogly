@@ -32,12 +32,15 @@ function AuthInner() {
           email,
           password,
           options: {
-            emailRedirectTo: `${window.location.origin}${redirectTo}`,
+            emailRedirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(redirectTo)}`,
           },
         });
 
         if (signUpError) throw signUpError;
-        setSuccess("Check your email for a confirmation link!");
+        
+        // Auto-redirect after signup (no email confirmation needed)
+        router.push("/dashboard");
+        router.refresh();
       } else {
         const { error: signInError } = await supabase.auth.signInWithPassword({
           email,
