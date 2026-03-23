@@ -42,6 +42,14 @@ export function DashboardClient({
     return `${diffDays} days ago`;
   };
 
+  // Calculate days since last scan
+  const daysSinceLastScan = latestScan
+    ? Math.floor(
+        (new Date().getTime() - new Date(latestScan.created_at).getTime()) /
+          (1000 * 60 * 60 * 24)
+      )
+    : null;
+
   return (
     <main className="min-h-screen bg-bg-primary pb-32">
       {/* Header */}
@@ -102,6 +110,27 @@ export function DashboardClient({
               Take Your First Scan
             </Link>
           </div>
+        )}
+
+        {/* Re-scan encouragement */}
+        {latestScan && daysSinceLastScan !== null && (
+          <>
+            {daysSinceLastScan >= 7 ? (
+              <Link
+                href="/scan/capture"
+                className="block rounded-xl bg-gradient-to-r from-accent-green to-emerald-500 text-black p-5 text-center font-bold hover:opacity-90 transition-opacity border border-accent-green/50"
+              >
+                <p className="text-lg mb-1">📸 Time for your weekly re-scan!</p>
+                <p className="text-sm opacity-90">See how your score changed</p>
+              </Link>
+            ) : daysSinceLastScan >= 3 ? (
+              <div className="rounded-xl bg-accent-green/10 border border-accent-green/20 p-4 text-center">
+                <p className="text-sm text-accent-green font-medium">
+                  Your next scan is in {7 - daysSinceLastScan} days
+                </p>
+              </div>
+            ) : null}
+          </>
         )}
 
         {/* New Scan Button */}
