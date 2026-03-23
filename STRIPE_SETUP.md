@@ -1,66 +1,49 @@
 # Stripe Configuration Guide
 
-## Required Stripe Environment Variables
-
-The checkout route expects these three environment variables:
+## Your Stripe Price IDs (READY TO USE ✅)
 
 ```
-STRIPE_WEEKLY_PRICE_ID=price_xxxxxxxxxxxxx
-STRIPE_MONTHLY_PRICE_ID=price_xxxxxxxxxxxxx
-STRIPE_ANNUAL_PRICE_ID=price_xxxxxxxxxxxxx
-STRIPE_SECRET_KEY=sk_test_xxxxxxxxxxxxx or sk_live_xxxxxxxxxxxxx
+STRIPE_WEEKLY_PRICE_ID=price_1TDwMnH6HtFUM3kP4JiP5DNA
+STRIPE_MONTHLY_PRICE_ID=price_1TDwNpH6HtFUM3kPPMfnqHYY
+STRIPE_ANNUAL_PRICE_ID=price_1TDwOXH6HtFUM3kPKoWMCfVp
 ```
-
-## How to Create Stripe Products & Prices
-
-1. Go to https://dashboard.stripe.com/products
-2. Click "+ Add product" for each:
-
-### Product 1: Mogly Weekly
-- Name: "Mogly Weekly"
-- Description: "AI Skin Analysis - Weekly Subscription with 3-day free trial"
-- Pricing: Recurring
-  - Amount: $9.99
-  - Frequency: Weekly
-- After creating, copy the **Price ID** (starts with `price_`)
-
-### Product 2: Mogly Monthly
-- Name: "Mogly Monthly"
-- Description: "AI Skin Analysis - Monthly Subscription"
-- Pricing: Recurring
-  - Amount: $29.99
-  - Frequency: Monthly
-- Copy the **Price ID**
-
-### Product 3: Mogly Annual
-- Name: "Mogly Annual"
-- Description: "AI Skin Analysis - Annual Subscription (Save 15%)"
-- Pricing: Recurring
-  - Amount: $99.99
-  - Frequency: Yearly
-- Copy the **Price ID**
 
 ## Setting Environment Variables in Vercel
 
-1. Go to Vercel Dashboard → Your Project
+1. Go to Vercel Dashboard → Your Project (Mogly)
 2. Settings → Environment Variables
 3. Add each variable:
-   - Key: `STRIPE_WEEKLY_PRICE_ID`, Value: `price_xxxxxxxxxxxxx`
-   - Key: `STRIPE_MONTHLY_PRICE_ID`, Value: `price_xxxxxxxxxxxxx`
-   - Key: `STRIPE_ANNUAL_PRICE_ID`, Value: `price_xxxxxxxxxxxxx`
-   - Key: `STRIPE_SECRET_KEY`, Value: `sk_test_xxxxxxxxxxxxx` (or sk_live_)
+   - Key: `STRIPE_WEEKLY_PRICE_ID`, Value: `price_1TDwMnH6HtFUM3kP4JiP5DNA`
+   - Key: `STRIPE_MONTHLY_PRICE_ID`, Value: `price_1TDwNpH6HtFUM3kPPMfnqHYY`
+   - Key: `STRIPE_ANNUAL_PRICE_ID`, Value: `price_1TDwOXH6HtFUM3kPKoWMCfVp`
+   - Key: `STRIPE_SECRET_KEY`, Value: `sk_test_xxxxxxxxxxxxx` (or sk_live_ if production)
 
-4. After adding, **REDEPLOY** your project for changes to take effect
+4. After adding, **REDEPLOY** your project for changes to take effect:
+   - Click "Deployments" tab
+   - Find the latest deployment
+   - Click the "..." menu
+   - Select "Redeploy"
 
-## Testing Stripe Locally
+## Local Testing
 
-For local testing, add these to your `.env.local` file (DO NOT commit):
+For local testing, create `.env.local` (DO NOT commit):
 
 ```
 STRIPE_SECRET_KEY=sk_test_your_secret_key
-STRIPE_WEEKLY_PRICE_ID=price_xxxxxxxxxxxxx
-STRIPE_MONTHLY_PRICE_ID=price_xxxxxxxxxxxxx
-STRIPE_ANNUAL_PRICE_ID=price_xxxxxxxxxxxxx
+STRIPE_WEEKLY_PRICE_ID=price_1TDwMnH6HtFUM3kP4JiP5DNA
+STRIPE_MONTHLY_PRICE_ID=price_1TDwNpH6HtFUM3kPPMfnqHYY
+STRIPE_ANNUAL_PRICE_ID=price_1TDwOXH6HtFUM3kPKoWMCfVp
 ```
 
-Then restart your dev server: `npm run dev`
+Then restart: `npm run dev`
+
+## Testing the Checkout Flow
+
+After deployment:
+1. Go to `/scan` and take a test scan
+2. Click "Start Free Trial" button
+3. Should redirect to Stripe Checkout
+4. Use test card: `4242 4242 4242 4242` (any future exp date, any CVC)
+5. Should redirect back to results with `?upgraded=true`
+6. Premium content should be unlocked ✅
+
