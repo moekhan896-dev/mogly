@@ -437,18 +437,53 @@ function CaptureInner() {
             <button
               onClick={submit}
               disabled={loading}
-              className="w-full py-4 rounded-xl bg-[#00E5A0] text-black font-bold text-lg mt-6 hover:brightness-110 disabled:opacity-50 transition-all"
+              style={{
+                width: '100%',
+                padding: '18px',
+                backgroundColor: '#00E5A0',
+                color: '#000000',
+                fontWeight: 'bold',
+                fontSize: '18px',
+                borderRadius: '12px',
+                border: 'none',
+                cursor: 'pointer',
+                marginTop: '16px',
+                marginBottom: '8px',
+                opacity: loading ? 0.5 : 1,
+              }}
             >
               {loading ? "Analyzing..." : "✨ Analyze My Skin"}
             </button>
             <button
               onClick={reset}
               disabled={loading}
-              className="w-full rounded-xl bg-bg-card py-3 text-sm font-semibold text-text-muted hover:text-text-primary disabled:opacity-50"
+              style={{
+                width: '100%',
+                padding: '12px',
+                backgroundColor: 'transparent',
+                color: '#888888',
+                fontSize: '14px',
+                border: '1px solid #333333',
+                borderRadius: '12px',
+                cursor: 'pointer',
+                opacity: loading ? 0.5 : 1,
+              }}
             >
               ↺ {mode === "camera" ? "Retake" : "Choose Different"}
             </button>
           </>
+        )}
+
+        {/* Loading state */}
+        {loading && (
+          <div style={{ textAlign: 'center', marginTop: '16px' }}>
+            <p style={{ color: '#00E5A0', fontSize: '14px', fontFamily: 'monospace' }}>
+              {LOADING_STEPS[loadingStep]}
+            </p>
+            <p style={{ color: '#666', fontSize: '12px', marginTop: '8px' }}>
+              This usually takes 5-8 seconds
+            </p>
+          </div>
         )}
 
         {/* Error */}
