@@ -3,6 +3,7 @@ import { Instrument_Sans, DM_Mono } from "next/font/google";
 import { Suspense } from "react";
 import { AnalyticsProvider } from "@/lib/analytics";
 import { ParticleBackground } from "@/components/ui/ParticleBackground";
+import { BottomNav } from "@/components/ui/BottomNav";
 import "./globals.css";
 
 const instrumentSans = Instrument_Sans({
@@ -71,6 +72,7 @@ export default function RootLayout({
         <ParticleBackground />
         <Suspense>
           <AnalyticsProvider>{children}</AnalyticsProvider>
+          <BottomNav />
         </Suspense>
       </body>
     </html>
