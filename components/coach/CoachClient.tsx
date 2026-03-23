@@ -16,6 +16,7 @@ export function CoachClient() {
   const router = useRouter();
   const supabase = createClient();
   
+  const [user, setUser] = useState<{ id: string } | null>(null);
   const [latestScan, setLatestScan] = useState<Record<string, unknown> | null>(null);
   const [loading, setLoading] = useState(true);
   
