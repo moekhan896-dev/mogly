@@ -167,6 +167,28 @@ export default function AccountPage() {
             </p>
           </div>
 
+          {/* Google sign-in */}
+          <button
+            onClick={async () => {
+              setError(null);
+              const { error: oauthError } = await supabase.auth.signInWithOAuth({
+                provider: "google",
+                options: { redirectTo: `${window.location.origin}/auth/callback?next=/account` },
+              });
+              if (oauthError) setError("Google sign-in failed. Try email instead.");
+            }}
+            className="flex items-center justify-center gap-3 w-full rounded-xl bg-white py-3.5 text-gray-700 font-semibold text-sm hover:bg-gray-100 transition-colors mb-4"
+          >
+            <img src="https://www.google.com/favicon.ico" width="18" height="18" alt="" />
+            Continue with Google
+          </button>
+
+          <div className="flex items-center gap-3 mb-4">
+            <div className="flex-1 h-px bg-white/[0.08]" />
+            <span className="text-xs text-text-muted">or</span>
+            <div className="flex-1 h-px bg-white/[0.08]" />
+          </div>
+
           <form onSubmit={mode === "signin" ? handleSignIn : handleSignUp} className="space-y-3 mb-6">
             <input type="email" placeholder="Email" value={email} onChange={(e) => setEmail(e.target.value)} required
               className="w-full rounded-xl bg-white/[0.06] border border-white/[0.08] px-4 py-3.5 text-white placeholder-white/30 outline-none focus:border-accent-green/50 transition-colors" />

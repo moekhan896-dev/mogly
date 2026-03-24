@@ -202,6 +202,29 @@ export function ResultsClient({ scan, isPremium: initialIsPremium, history }: Pr
             </button>
           </div>
 
+          {/* Google sign-in */}
+          <button
+            type="button"
+            onClick={async () => {
+              setModalError(null);
+              const { error: oauthError } = await supabase.auth.signInWithOAuth({
+                provider: "google",
+                options: { redirectTo: `${window.location.origin}/auth/callback?next=/account` },
+              });
+              if (oauthError) setModalError("Google sign-in failed. Try email instead.");
+            }}
+            className="flex items-center justify-center gap-3 w-full rounded-xl bg-white py-3 text-gray-700 font-semibold text-sm hover:bg-gray-100 transition-colors mb-3"
+          >
+            <img src="https://www.google.com/favicon.ico" width="18" height="18" alt="" />
+            Continue with Google
+          </button>
+
+          <div className="flex items-center gap-3 mb-3">
+            <div className="flex-1 h-px bg-white/[0.08]" />
+            <span className="text-xs text-text-muted">or</span>
+            <div className="flex-1 h-px bg-white/[0.08]" />
+          </div>
+
           <form onSubmit={authMode === "signin" ? handleSignIn : handleSignUp} className="space-y-3">
             <input
               type="email"
