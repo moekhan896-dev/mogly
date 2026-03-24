@@ -143,12 +143,16 @@ export default function ScanPage() {
 
       // Logged-in user: check DB
       if (session?.user) {
-        const [scansRes, profileRes] = await Promise.all([
+        const [scansRes, premiumRes] = await Promise.all([
           supabase.from("scans").select("id, created_at").eq("user_id", session.user.id).order("created_at", { ascending: false }).limit(1),
-          supabase.from("profiles").select("subscription_status").eq("id", session.user.id).single(),
+          fetch("/api/check-premium", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ userId: session.user.id }),
+          }).then((r) => r.json()),
         ]);
 
-        const premium = profileRes.data?.subscription_status === "premium";
+        const premium = premiumRes.isPremium === true;
         setIsPremium(premium);
 
         if (scansRes.data && scansRes.data.length > 0) {

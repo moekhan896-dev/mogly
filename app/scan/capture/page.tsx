@@ -74,13 +74,13 @@ function CaptureInner() {
 
         if (session?.user) {
           // Logged-in: check DB for existing scan
-          const { data: profile } = await supabase
-            .from("profiles")
-            .select("subscription_status")
-            .eq("id", session.user.id)
-            .single();
+          const premiumRes = await fetch("/api/check-premium", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ userId: session.user.id }),
+          }).then((r) => r.json());
 
-          const isPremium = profile?.subscription_status === "premium";
+          const isPremium = premiumRes.isPremium === true;
           if (!isPremium) {
             const { data: scans } = await supabase
               .from("scans")

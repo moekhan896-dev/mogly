@@ -27,6 +27,7 @@ export async function isSubscribed(userId: string): Promise<boolean> {
     }
 
     return (
+      data.subscription_status === "premium" ||
       data.subscription_status === "active" ||
       data.subscription_status === "trial"
     );
