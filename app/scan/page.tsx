@@ -107,6 +107,7 @@ export default function ScanPage() {
   const [scanStatus, setScanStatus] = useState<ScanStatus>("checking");
   const [lastScanId, setLastScanId] = useState<string | null>(null);
   const [isPremium, setIsPremium] = useState(false);
+  const [premiumChecked, setPremiumChecked] = useState(false);
   const [answers, setAnswers] = useState<Answers>({
     concern: "",
     ageRange: "",
@@ -137,6 +138,22 @@ export default function ScanPage() {
           setLastScanId(scan.id);
           const ageHours = (Date.now() - new Date(scan.created_at).getTime()) / 3600000;
           setScanStatus(ageHours < 24 ? "returning_recent" : "returning_old");
+
+          // Check premium before showing buttons
+          if (session?.user) {
+            fetch("/api/check-premium", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ userId: session.user.id }),
+            })
+              .then((r) => r.json())
+              .then(({ isPremium: p }) => {
+                setIsPremium(p === true);
+                setPremiumChecked(true);
+              });
+          } else {
+            setPremiumChecked(true);
+          }
           return;
         }
       }
@@ -154,6 +171,7 @@ export default function ScanPage() {
 
         const premium = premiumRes.isPremium === true;
         setIsPremium(premium);
+        setPremiumChecked(true);
 
         if (scansRes.data && scansRes.data.length > 0) {
           setLastScanId(scansRes.data[0].id);
@@ -164,6 +182,7 @@ export default function ScanPage() {
       }
 
       setScanStatus("new_user");
+      setPremiumChecked(true);
     };
 
     checkScanStatus();
@@ -277,9 +296,17 @@ export default function ScanPage() {
             📊 View My Results
           </a>
           <button
-            onClick={() => isPremium ? setScanStatus("new_user") : setScanStatus("upgrade_required")}
-            className="flex items-center justify-center gap-2 w-full rounded-xl border border-white/[0.1] py-3.5 text-text-muted text-base hover:border-white/[0.2] hover:text-text-primary transition-colors">
-            📸 Take New Scan
+            disabled={!premiumChecked}
+            onClick={() => {
+              if (!premiumChecked) return;
+              if (isPremium) {
+                setScanStatus("new_user");
+              } else {
+                setScanStatus("upgrade_required");
+              }
+            }}
+            className={`flex items-center justify-center gap-2 w-full rounded-xl border border-white/[0.1] py-3.5 text-base transition-colors ${premiumChecked ? "text-text-muted hover:border-white/[0.2] hover:text-text-primary" : "text-text-muted/40 cursor-wait"}`}>
+            {premiumChecked ? "📸 Take New Scan" : "⏳ Loading..."}
           </button>
         </div>
       </main>
@@ -296,7 +323,11 @@ export default function ScanPage() {
           See how your skin has improved. We already have your profile — go straight to capture.
         </p>
         <div className="w-full max-w-xs space-y-3">
-          {isPremium ? (
+          {!premiumChecked ? (
+            <div className="flex items-center justify-center gap-2 w-full rounded-xl bg-accent-green/40 py-4 text-black font-bold text-base cursor-wait">
+              ⏳ Checking account...
+            </div>
+          ) : isPremium ? (
             <a href="/scan/capture"
               className="flex items-center justify-center gap-2 w-full rounded-xl bg-accent-green py-4 text-black font-bold text-base">
               📸 Scan Again
