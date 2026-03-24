@@ -63,6 +63,19 @@ export function CoachClient() {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
+  // Load persisted messages on mount
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem("mogly_coach_messages");
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          setMessages(parsed);
+        }
+      }
+    } catch {}
+  }, []);
+
   useEffect(() => {
     const loadData = async () => {
       const { data: { session } } = await supabase.auth.getSession();
@@ -103,12 +116,23 @@ export function CoachClient() {
 
       if (scan) {
         setLatestScan(scan);
-        const conditions = (scan.conditions as Array<{ name: string }>) || [];
-        setMessages([{
-          id: "welcome",
-          role: "coach",
-          text: `Hi! 👋 I've analyzed your skin. Your score is ${scan.overall_score}/100${conditions.length > 0 ? ` and I detected ${conditions.length} condition${conditions.length > 1 ? "s" : ""}: ${conditions.map((c) => c.name).join(", ")}` : ""}. Ask me anything about your skincare routine, products, or diet!`,
-        }]);
+        // Only set welcome message if no saved history
+        const hasSaved = (() => {
+          try {
+            const s = localStorage.getItem("mogly_coach_messages");
+            return s ? JSON.parse(s).length > 0 : false;
+          } catch { return false; }
+        })();
+        if (!hasSaved) {
+          const conditions = (scan.conditions as Array<{ name: string }>) || [];
+          const welcome: Message = {
+            id: "welcome",
+            role: "coach",
+            text: `Hi! 👋 I've analyzed your skin. Your score is ${scan.overall_score}/100${conditions.length > 0 ? ` and I detected ${conditions.length} condition${conditions.length > 1 ? "s" : ""}: ${conditions.map((c) => c.name).join(", ")}` : ""}. Ask me anything about your skincare routine, products, or diet!`,
+          };
+          setMessages([welcome]);
+          localStorage.setItem("mogly_coach_messages", JSON.stringify([welcome]));
+        }
       }
 
       setMsgCount(getCoachCount());
@@ -125,7 +149,12 @@ export function CoachClient() {
     if (!text.trim() || !latestScan || sendLoading || isLimitReached) return;
 
     const userMsg: Message = { id: Date.now().toString(), role: "user", text };
-    setMessages((prev) => [...prev, userMsg]);
+    const withUser = (prev: Message[]) => {
+      const updated = [...prev, userMsg];
+      localStorage.setItem("mogly_coach_messages", JSON.stringify(updated));
+      return updated;
+    };
+    setMessages(withUser);
     setInput("");
     setSendLoading(true);
 
@@ -137,11 +166,21 @@ export function CoachClient() {
       });
 
       const data = await res.json();
-      setMessages((prev) => [...prev, { id: (Date.now() + 1).toString(), role: "coach", text: data.reply }]);
+      const coachMsg: Message = { id: (Date.now() + 1).toString(), role: "coach", text: data.reply };
+      setMessages((prev) => {
+        const updated = [...prev, coachMsg];
+        localStorage.setItem("mogly_coach_messages", JSON.stringify(updated));
+        return updated;
+      });
       incrementCoachCount();
       setMsgCount((c) => c + 1);
     } catch {
-      setMessages((prev) => [...prev, { id: (Date.now() + 1).toString(), role: "coach", text: "Sorry, I had trouble. Please try again." }]);
+      const errMsg: Message = { id: (Date.now() + 1).toString(), role: "coach", text: "Sorry, I had trouble. Please try again." };
+      setMessages((prev) => {
+        const updated = [...prev, errMsg];
+        localStorage.setItem("mogly_coach_messages", JSON.stringify(updated));
+        return updated;
+      });
     } finally {
       setSendLoading(false);
     }
@@ -181,9 +220,21 @@ export function CoachClient() {
             <h1 className="text-lg font-bold text-text-primary">Your Skin Coach 💬</h1>
             <p className="text-[11px] text-text-muted mt-0.5">AI-powered skincare advice based on your scan</p>
           </div>
-          <span className="text-[10px] font-mono text-text-muted">
-            {isPremium ? `${messagesLeft} left` : `${messagesLeft}/${FREE_LIMIT} free`}
-          </span>
+          <div className="flex items-center gap-3">
+            <span className="text-[10px] font-mono text-text-muted">
+              {isPremium ? `${messagesLeft} left` : `${messagesLeft}/${FREE_LIMIT} free`}
+            </span>
+            <button
+              onClick={() => {
+                const welcome: Message = { id: "welcome", role: "coach", text: "Hi! 👋 I've analyzed your skin! Ask me anything about your skincare routine, products, or diet!" };
+                setMessages([welcome]);
+                localStorage.setItem("mogly_coach_messages", JSON.stringify([welcome]));
+              }}
+              style={{ backgroundColor: "transparent", color: "#666", fontSize: "11px", border: "none", cursor: "pointer", padding: "4px 8px" }}
+            >
+              Clear Chat
+            </button>
+          </div>
         </div>
       </div>
 
@@ -202,7 +253,7 @@ export function CoachClient() {
       </div>
 
       {/* Messages */}
-      <div className="flex-1 overflow-y-auto px-4 py-4 space-y-3" style={{ paddingBottom: "100px" }}>
+      <div className="flex-1 overflow-y-auto px-4 py-4 space-y-3" style={{ paddingBottom: "160px" }}>
         {messages.map((msg) => (
           <div key={msg.id} className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
             <div className={`max-w-[80%] px-4 py-2.5 rounded-2xl text-sm leading-relaxed ${
@@ -248,8 +299,8 @@ export function CoachClient() {
         </div>
       )}
 
-      {/* Input */}
-      <div className="flex-shrink-0 border-t border-white/[0.06] px-4 py-3 bg-bg-primary" style={{ paddingBottom: "calc(env(safe-area-inset-bottom) + 72px)" }}>
+      {/* Input — fixed above bottom nav */}
+      <div className="border-t border-white/[0.06] px-4 py-3 bg-bg-primary" style={{ position: "fixed", bottom: "72px", left: 0, right: 0, zIndex: 40 }}>
         <div className="flex gap-2">
           <input
             type="text"
