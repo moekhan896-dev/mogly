@@ -70,10 +70,12 @@ export default function RootLayout({
         className={`${instrumentSans.variable} ${dmMono.variable} font-sans antialiased bg-bg-primary text-text-primary`}
       >
         <ParticleBackground />
-        <Suspense>
-          <AnalyticsProvider>{children}</AnalyticsProvider>
-          <BottomNav />
-        </Suspense>
+        <div className="relative z-10">
+          <Suspense>
+            <AnalyticsProvider>{children}</AnalyticsProvider>
+            <BottomNav />
+          </Suspense>
+        </div>
       </body>
     </html>
   );
