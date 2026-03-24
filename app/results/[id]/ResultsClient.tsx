@@ -47,27 +47,40 @@ export function ResultsClient({ scan, isPremium: initialIsPremium, history }: Pr
     } catch {}
   }, [scan.id]);
 
-  // Check auth; if upgraded=true + already logged in, save premium to DB immediately
+  // Always check premium from DB on mount using session user ID
+  // (server-side isPremium can be false when scan.user_id is null)
   useEffect(() => {
     const checkAuth = async () => {
       const { data: { session } } = await supabase.auth.getSession();
       const logged = !!session;
       setIsLoggedIn(logged);
 
-      if (upgraded && logged && session?.user) {
-        // Persist premium via service-role route (bypasses RLS, upserts row)
-        await fetch("/api/update-premium", {
+      if (logged && session?.user) {
+        // Always re-check premium status directly — bypasses scan linkage issues
+        const res = await fetch("/api/check-premium", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ userId: session.user.id }),
         });
-        // Link scan to user
-        await fetch("/api/link-scan", {
+        const { isPremium: dbPremium } = await res.json();
+        setIsPremium(dbPremium);
+
+        // Always try to link this scan to the user (no-op if already linked)
+        fetch("/api/link-scan", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ scanId: scan.id }),
         });
-        setIsPremium(true);
+
+        if (upgraded) {
+          // Also persist premium on first return from Stripe
+          await fetch("/api/update-premium", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ userId: session.user.id }),
+          });
+          setIsPremium(true);
+        }
       } else if (upgraded && !logged) {
         setShowAccountModal(true);
       }
