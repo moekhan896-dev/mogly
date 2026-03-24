@@ -41,7 +41,7 @@ export async function POST(request: Request) {
 
     // Send email via Resend
     const result = await resend.emails.send({
-      from: 'Mogly <onboarding@resend.dev>',
+      from: 'Mogly Skin Analysis <skin@mogly.app>',
       to: email,
       subject: `Your Mogly Skin Report — Score: ${scan.overall_score}/100`,
       html: `
@@ -68,7 +68,7 @@ export async function POST(request: Request) {
           </div>
           
           <div style="text-align: center; margin: 32px 0;">
-            <a href="https://mogly-amber.vercel.app/results/${scanId}" style="background: #00E5A0; color: black; padding: 12px 48px; border-radius: 8px; text-decoration: none; font-weight: 600; font-size: 14px; display: inline-block;">View Full Report</a>
+            <a href="https://mogly.app/results/${scanId}" style="background: #00E5A0; color: black; padding: 12px 48px; border-radius: 8px; text-decoration: none; font-weight: 600; font-size: 14px; display: inline-block;">View Full Report</a>
           </div>
           
           <p style="text-align: center; color: #444; font-size: 11px; margin: 32px 0 0 0; line-height: 1.6;">
