@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { createClient } from "@/lib/supabase";
 import type { ScanResult } from "@/lib/scores";
+import { linkOrphanedScans } from "@/lib/linkScans";
 
 interface RoutineStep {
   step: number;
@@ -68,6 +69,8 @@ export function RoutineClient() {
       let foundScan = null;
 
       if (session?.user) {
+        await linkOrphanedScans(supabase, session.user.id);
+
         const { data: scans } = await supabase
           .from("scans").select("*").eq("user_id", session.user.id)
           .order("created_at", { ascending: false }).limit(1);

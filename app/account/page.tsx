@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase";
 import type { ScanResult } from "@/lib/scores";
+import { linkOrphanedScans } from "@/lib/linkScans";
 
 export default function AccountPage() {
   const router = useRouter();
@@ -18,6 +19,7 @@ export default function AccountPage() {
   const [error, setError] = useState<string | null>(null);
   const [formLoading, setFormLoading] = useState(false);
   const [hasUnsavedScan, setHasUnsavedScan] = useState(false);
+  const [lastScanId, setLastScanId] = useState<string | null>(null);
 
   const [scans, setScans] = useState<ScanResult[]>([]);
   const [isPremium, setIsPremium] = useState(false);
@@ -30,6 +32,12 @@ export default function AccountPage() {
       if (session?.user) {
         setUser(session.user);
 
+        // Link any orphaned scans before querying
+        await linkOrphanedScans(supabase, session.user.id);
+
+        const storedScanId = localStorage.getItem("mogly_last_scan_id");
+        if (storedScanId) setLastScanId(storedScanId);
+
         const [scansRes, profileRes, streakRes] = await Promise.all([
           supabase.from("scans").select("*").eq("user_id", session.user.id).order("created_at", { ascending: false }),
           supabase.from("profiles").select("subscription_status").eq("id", session.user.id).single(),
@@ -41,8 +49,8 @@ export default function AccountPage() {
         if (streakRes.data) setStreak(streakRes.data.current_streak || 0);
       } else {
         // Check for unsaved anonymous scan
-        const lastScanId = localStorage.getItem("mogly_last_scan_id");
-        if (lastScanId) setHasUnsavedScan(true);
+        const storedScanId = localStorage.getItem("mogly_last_scan_id");
+        if (storedScanId) { setHasUnsavedScan(true); setLastScanId(storedScanId); }
       }
 
       setLoading(false);
@@ -313,6 +321,44 @@ export default function AccountPage() {
             <p className="text-3xl mb-3">📸</p>
             <p className="text-text-primary font-semibold mb-1">No scans yet</p>
             <p className="text-text-muted text-sm">Take your first AI skin scan to see your score</p>
+          </div>
+        )}
+
+        {/* ── Premium section ── */}
+        {isPremium ? (
+          <div className="rounded-2xl bg-accent-green/5 border border-accent-green/10 p-5 text-center mb-4">
+            <p className="text-sm font-bold text-accent-green">✅ Premium Active</p>
+            <p className="text-xs text-text-muted mt-1">Unlimited scans • Full coach access • Complete routines</p>
+          </div>
+        ) : (
+          <div className="rounded-2xl border border-accent-green/15 p-6 mb-4"
+            style={{ background: "linear-gradient(135deg, rgba(0,229,160,0.08), rgba(0,180,216,0.08))" }}>
+            <h3 className="text-lg font-bold text-text-primary mb-2">Unlock Your Full Potential</h3>
+            <p className="text-xs text-text-muted leading-relaxed mb-4">
+              Free accounts are limited to 1 scan with basic results. Premium members get:
+            </p>
+            <div className="space-y-2.5 mb-5">
+              {[
+                "Unlimited AI skin scans — track your progress weekly",
+                "Complete 5-step treatment protocol with product recommendations",
+                "AI Skin Coach — 100 personalized consultations per month",
+                "Full daily morning & evening routine with checkoff tracking",
+                "Score progress tracking — see your skin improve over time",
+              ].map((item) => (
+                <div key={item} className="flex items-start gap-2.5">
+                  <span className="text-accent-green text-xs mt-0.5 shrink-0">✓</span>
+                  <span className="text-xs text-text-muted leading-relaxed">{item}</span>
+                </div>
+              ))}
+            </div>
+            <p className="text-[10px] text-text-muted/60 text-center mb-3">Average improvement: 18 points in 30 days</p>
+            <a
+              href={lastScanId ? `/results/${lastScanId}` : "/scan"}
+              className="flex items-center justify-center w-full rounded-xl bg-accent-green py-4 text-black font-bold text-base hover:brightness-110 transition-all"
+            >
+              Upgrade to Premium — Start Free Trial
+            </a>
+            <p className="text-[10px] text-text-muted/50 text-center mt-2">3-day free trial • Cancel anytime • $9.99/week after trial</p>
           </div>
         )}
 

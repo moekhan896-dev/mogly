@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect } from "react";
 import { createClient } from "@/lib/supabase";
+import { linkOrphanedScans } from "@/lib/linkScans";
 
 interface Message {
   id: string;
@@ -69,6 +70,8 @@ export function CoachClient() {
       let scan = null;
 
       if (session?.user) {
+        await linkOrphanedScans(supabase, session.user.id);
+
         const { data: scans } = await supabase
           .from("scans")
           .select("*")
