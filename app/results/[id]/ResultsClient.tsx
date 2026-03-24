@@ -55,10 +55,12 @@ export function ResultsClient({ scan, isPremium: initialIsPremium, history }: Pr
       setIsLoggedIn(logged);
 
       if (upgraded && logged && session?.user) {
-        // Persist premium in DB right away
-        await supabase.from("profiles")
-          .update({ subscription_status: "premium" })
-          .eq("id", session.user.id);
+        // Persist premium via service-role route (bypasses RLS, upserts row)
+        await fetch("/api/update-premium", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ userId: session.user.id }),
+        });
         // Link scan to user
         await fetch("/api/link-scan", {
           method: "POST",
@@ -75,16 +77,18 @@ export function ResultsClient({ scan, isPremium: initialIsPremium, history }: Pr
   }, [upgraded]);
 
   const savePremiumAndReload = async (userId: string) => {
-    // Save to DB via service-role API
-    await fetch("/api/link-scan", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ scanId: scan.id }),
-    });
-    // Update profile directly — user is now logged in so RLS allows own-row update
-    await supabase.from("profiles")
-      .update({ subscription_status: "premium" })
-      .eq("id", userId);
+    await Promise.all([
+      fetch("/api/update-premium", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId }),
+      }),
+      fetch("/api/link-scan", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ scanId: scan.id }),
+      }),
+    ]);
     window.location.reload();
   };
 
@@ -207,9 +211,10 @@ export function ResultsClient({ scan, isPremium: initialIsPremium, history }: Pr
             type="button"
             onClick={async () => {
               setModalError(null);
+              const appUrl = process.env.NEXT_PUBLIC_APP_URL || "https://mogly-amber.vercel.app";
               const { error: oauthError } = await supabase.auth.signInWithOAuth({
                 provider: "google",
-                options: { redirectTo: `${window.location.origin}/auth/callback?next=/account` },
+                options: { redirectTo: `${appUrl}/auth/callback` },
               });
               if (oauthError) setModalError("Google sign-in failed. Try email instead.");
             }}

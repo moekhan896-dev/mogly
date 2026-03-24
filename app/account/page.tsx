@@ -171,9 +171,10 @@ export default function AccountPage() {
           <button
             onClick={async () => {
               setError(null);
+              const appUrl = process.env.NEXT_PUBLIC_APP_URL || "https://mogly-amber.vercel.app";
               const { error: oauthError } = await supabase.auth.signInWithOAuth({
                 provider: "google",
-                options: { redirectTo: `${window.location.origin}/auth/callback?next=/account` },
+                options: { redirectTo: `${appUrl}/auth/callback` },
               });
               if (oauthError) setError("Google sign-in failed. Try email instead.");
             }}
