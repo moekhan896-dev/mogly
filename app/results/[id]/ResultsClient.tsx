@@ -300,7 +300,7 @@ export function ResultsClient({ scan, isPremium: initialIsPremium, history }: Pr
   }
 
   return (
-    <main className="min-h-screen bg-bg-primary pb-24">
+    <main className={`min-h-screen bg-bg-primary ${isPremium ? "pb-24" : "pb-32"}`}>
       {/* Ambient glow */}
       <div
         className="pointer-events-none fixed inset-0 z-0"
@@ -378,6 +378,44 @@ export function ResultsClient({ scan, isPremium: initialIsPremium, history }: Pr
         </div>
 
         <div className="h-px w-full bg-white/[0.06] my-8" />
+
+        {/* Teaser card for free users — score peek */}
+        {!isPremium && (
+          <div
+            className="rounded-2xl mb-6 overflow-hidden"
+            style={{ border: "1px solid rgba(0,229,160,0.2)", background: "linear-gradient(135deg, rgba(0,229,160,0.05) 0%, rgba(0,229,160,0.01) 100%)" }}
+          >
+            <div className="px-5 py-4">
+              <div className="flex items-center justify-between mb-3">
+                <p className="text-xs font-mono uppercase tracking-widest text-accent-green">
+                  Your Full Report
+                </p>
+                <span className="text-xs bg-accent-green/10 text-accent-green rounded-full px-2 py-0.5 font-semibold">
+                  Premium
+                </span>
+              </div>
+              <div className="flex flex-col gap-2 mb-4">
+                {["🔬 Full treatment protocol ({n} personalised steps)".replace("{n}", String(scan.improvement_plan?.length || 5)), "💊 Product recommendations with exact ingredients", "🍎 Dietary triggers affecting your skin", "📈 Track improvement over time"].map((item, i) => (
+                  <div key={i} className="flex items-center gap-2">
+                    <span className="text-sm">{item.split(" ")[0]}</span>
+                    <span className="text-xs text-text-muted">{item.split(" ").slice(1).join(" ")}</span>
+                  </div>
+                ))}
+              </div>
+              <a
+                href="#paywall"
+                onClick={(e) => {
+                  e.preventDefault();
+                  document.getElementById("paywall")?.scrollIntoView({ behavior: "smooth" });
+                }}
+                className="block w-full text-center rounded-xl py-3 text-sm font-bold text-black"
+                style={{ backgroundColor: "#00E5A0" }}
+              >
+                🔓 Unlock Full Report
+              </a>
+            </div>
+          </div>
+        )}
 
         {/* Content based on premium status */}
         {isPremium ? (
@@ -481,7 +519,9 @@ export function ResultsClient({ scan, isPremium: initialIsPremium, history }: Pr
             </div>
 
             {/* Paywall */}
-            <Paywall scanId={scan.id} />
+            <div id="paywall">
+              <Paywall scanId={scan.id} />
+            </div>
           </>
         )}
 
@@ -490,6 +530,26 @@ export function ResultsClient({ scan, isPremium: initialIsPremium, history }: Pr
           <span className="font-mono text-[11px] text-[#333]">mogly.app</span>
         </footer>
       </div>
+
+      {/* Sticky upgrade banner for free users */}
+      {!isPremium && (
+        <div
+          className="fixed bottom-0 left-0 right-0 z-40 px-4 pb-4 pt-2"
+          style={{ background: "linear-gradient(to top, #0A0A12 70%, transparent)" }}
+        >
+          <a
+            href="#paywall"
+            onClick={(e) => {
+              e.preventDefault();
+              document.getElementById("paywall")?.scrollIntoView({ behavior: "smooth" });
+            }}
+            className="flex items-center justify-center gap-2 w-full max-w-sm mx-auto rounded-2xl py-4 text-black font-bold text-base"
+            style={{ backgroundColor: "#00E5A0" }}
+          >
+            🔓 Unlock Full Report
+          </a>
+        </div>
+      )}
 
       {/* Bottom nav only for logged-in users */}
       {isLoggedIn && <BottomNav />}

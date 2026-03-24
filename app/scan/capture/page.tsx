@@ -47,7 +47,7 @@ function CaptureInner() {
         const { data: { session } } = await supabase.auth.getSession();
 
         if (session?.user) {
-          // Logged-in: check DB for existing scan
+          // Logged-in: check premium first
           const premiumRes = await fetch("/api/check-premium", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
@@ -68,11 +68,18 @@ function CaptureInner() {
             }
           }
         } else {
-          // Anonymous: check localStorage
-          const storedId = localStorage.getItem("mogly_last_scan_id");
-          if (storedId) {
-            setExistingScanId(storedId);
+          // Anonymous: check server-side (cookie + IP)
+          const limitRes = await fetch("/api/check-scan-limit").then((r) => r.json());
+          if (limitRes.limited) {
+            setExistingScanId(limitRes.existingScanId || localStorage.getItem("mogly_last_scan_id"));
             setScanLimitReached(true);
+          } else {
+            // Also check localStorage as fallback
+            const storedId = localStorage.getItem("mogly_last_scan_id");
+            if (storedId) {
+              setExistingScanId(storedId);
+              setScanLimitReached(true);
+            }
           }
         }
       } catch {}
@@ -168,6 +175,17 @@ function CaptureInner() {
 
       const imageUrl = publicUrlData.publicUrl;
 
+      // Generate canvas-based browser fingerprint
+      let fingerprint = "none";
+      try {
+        const fpCanvas = document.createElement("canvas");
+        const fpCtx = fpCanvas.getContext("2d")!;
+        fpCtx.textBaseline = "top";
+        fpCtx.font = "14px Arial";
+        fpCtx.fillText("mogly-fp-🌿", 2, 2);
+        fingerprint = fpCanvas.toDataURL().slice(-32);
+      } catch {}
+
       // Analyze
       const res = await fetch("/api/analyze", {
         method: "POST",
@@ -178,12 +196,19 @@ function CaptureInner() {
           ageRange,
           routineLevel,
           goal,
+          fingerprint,
         }),
       });
 
       const data = await res.json();
 
       if (!res.ok) {
+        if (data.error === "FREE_SCAN_USED" && data.existingScanId) {
+          if (progressIntervalRef.current) clearInterval(progressIntervalRef.current);
+          localStorage.setItem("mogly_last_scan_id", data.existingScanId);
+          window.location.href = `/results/${data.existingScanId}`;
+          return;
+        }
         throw new Error(data.error || `HTTP ${res.status}`);
       }
 

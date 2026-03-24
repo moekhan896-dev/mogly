@@ -302,6 +302,21 @@ export default function ScanPage() {
             onClick={() => {
               if (!premiumChecked) return;
               if (isPremium) {
+                // Skip quiz — reuse saved onboarding answers
+                try {
+                  const saved = localStorage.getItem("mogly_onboarding");
+                  if (saved) {
+                    const parsed = JSON.parse(saved);
+                    const params = new URLSearchParams({
+                      concern: parsed.concern || "",
+                      ageRange: parsed.ageRange || "",
+                      routineLevel: parsed.routineLevel || "",
+                      goal: parsed.goal || "",
+                    });
+                    router.push(`/scan/capture?${params.toString()}`);
+                    return;
+                  }
+                } catch {}
                 setScanStatus("new_user");
               } else {
                 setScanStatus("upgrade_required");
@@ -330,10 +345,27 @@ export default function ScanPage() {
               ⏳ Checking account...
             </div>
           ) : isPremium ? (
-            <a href="/scan/capture"
+            <button
+              onClick={() => {
+                try {
+                  const saved = localStorage.getItem("mogly_onboarding");
+                  if (saved) {
+                    const parsed = JSON.parse(saved);
+                    const params = new URLSearchParams({
+                      concern: parsed.concern || "",
+                      ageRange: parsed.ageRange || "",
+                      routineLevel: parsed.routineLevel || "",
+                      goal: parsed.goal || "",
+                    });
+                    router.push(`/scan/capture?${params.toString()}`);
+                    return;
+                  }
+                } catch {}
+                router.push("/scan/capture");
+              }}
               className="flex items-center justify-center gap-2 w-full rounded-xl bg-accent-green py-4 text-black font-bold text-base">
               📸 Scan Again
-            </a>
+            </button>
           ) : (
             <a href={`/results/${lastScanId}`}
               className="flex items-center justify-center gap-2 w-full rounded-xl bg-accent-green py-4 text-black font-bold text-base">
