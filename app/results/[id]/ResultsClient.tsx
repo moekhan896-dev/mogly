@@ -333,20 +333,12 @@ export function ResultsClient({ scan, isPremium: initialIsPremium, history }: Pr
             Mogly Skin Analysis
           </span>
 
-          <AnimatedScore value={scan.overall_score} color={mainColor} />
-
-          {/* Skin age */}
-          {scan.skin_age > 0 && (
-            <p className="mt-3 text-sm text-text-muted">
-              Skin Age: <span className="font-bold text-text-primary">{scan.skin_age}</span>
-            </p>
-          )}
-
-          <div className="mt-4 mb-2 rounded-full bg-bg-card px-4 py-1.5 text-xs">
-            <span className="font-semibold text-text-primary">
-              {getPercentileCopy(scan.overall_score)}
-            </span>
-          </div>
+          <AnimatedScore
+            value={scan.overall_score}
+            color={mainColor}
+            skinAge={scan.skin_age}
+            percentileCopy={getPercentileCopy(scan.overall_score)}
+          />
 
           {/* Emotional anchor based on goal */}
           {(() => {
