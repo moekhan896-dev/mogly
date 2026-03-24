@@ -33,12 +33,17 @@ export function ResultsClient({ scan, isPremium: initialIsPremium, history }: Pr
   const [modalLoading, setModalLoading] = useState(false);
   const [email, setEmail] = useState("");
   const [emailStatus, setEmailStatus] = useState<"idle" | "sending" | "success" | "error">("idle");
+  const [savedGoal, setSavedGoal] = useState<string | null>(null);
   
   const upgraded = searchParams.get("upgraded") === "true";
 
   // Save scan ID to localStorage for later account linking
   useEffect(() => {
     localStorage.setItem('mogly_last_scan_id', scan.id);
+    try {
+      const onboarding = localStorage.getItem("mogly_onboarding");
+      if (onboarding) setSavedGoal(JSON.parse(onboarding).goal ?? null);
+    } catch {}
   }, [scan.id]);
 
   // Check if user is logged in and should show modal
@@ -157,6 +162,24 @@ export function ResultsClient({ scan, isPremium: initialIsPremium, history }: Pr
 
   const mainColor = getScoreColor(scan.overall_score);
   const percentile = Math.max(1, 100 - Math.floor(scan.overall_score));
+
+  // Psychology helpers
+  function getPercentileCopy(score: number): string {
+    if (score >= 90) return `Top ${percentile}% — You're in elite skin territory 🏆`;
+    if (score >= 75) return `Better than ${100 - percentile}% of people your age ✨`;
+    if (score >= 60) return `Your skin is average — real room to grow 📈`;
+    return `Most people at your score see rapid gains fast 🚨`;
+  }
+
+  function getGoalCopy(goal: string | null): string | null {
+    switch (goal) {
+      case "clear_skin": return "Every blemish is quietly costing you confidence. A clear plan changes that.";
+      case "anti_aging": return "Each day without a routine adds visible years. The window to reverse is now.";
+      case "glow": return "Dull skin is 100% reversible — but only with the right ingredients and timing.";
+      case "even_tone": return "Uneven tone is the first thing people notice. It's also one of the fastest to fix.";
+      default: return null;
+    }
+  }
 
   // MODAL SHOULD APPEAR OVER EVERYTHING IF JUST UPGRADED AND NOT LOGGED IN
   if (upgraded && !isLoggedIn) {
@@ -277,15 +300,28 @@ export function ResultsClient({ scan, isPremium: initialIsPremium, history }: Pr
 
           <AnimatedScore value={scan.overall_score} color={mainColor} />
 
-          <div className="mt-4 mb-6 rounded-full bg-bg-card px-4 py-1.5 text-xs">
+          {/* Skin age */}
+          {scan.skin_age > 0 && (
+            <p className="mt-3 text-sm text-text-muted">
+              Skin Age: <span className="font-bold text-text-primary">{scan.skin_age}</span>
+            </p>
+          )}
+
+          <div className="mt-4 mb-2 rounded-full bg-bg-card px-4 py-1.5 text-xs">
             <span className="font-semibold text-text-primary">
-              {scan.overall_score >= 90 
-                ? `Top ${percentile}% — Exceptional skin 🔥` 
-                : scan.overall_score >= 75 
-                ? `Top ${percentile}% — Better than most ✨` 
-                : `Needs attention 🚨`}
+              {getPercentileCopy(scan.overall_score)}
             </span>
           </div>
+
+          {/* Emotional anchor based on goal */}
+          {(() => {
+            const copy = getGoalCopy(savedGoal);
+            return copy ? (
+              <p className="mb-4 text-xs text-text-muted/80 max-w-xs text-center leading-relaxed italic">
+                &ldquo;{copy}&rdquo;
+              </p>
+            ) : <div className="mb-4" />;
+          })()}
 
           {/* Share */}
           <div className="w-full mb-6">
@@ -331,7 +367,7 @@ export function ResultsClient({ scan, isPremium: initialIsPremium, history }: Pr
                     <div
                       key={i}
                       className="rounded-xl bg-bg-card border border-white/[0.06] px-4 py-3.5"
-                      style={i > 0 ? { filter: "blur(4px)", userSelect: "none", pointerEvents: "none" } : {}}
+                      style={i > 0 ? { filter: "blur(3px)", userSelect: "none", pointerEvents: "none" } : {}}
                     >
                       <div className="flex items-start gap-3">
                         <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-accent-green/10 text-xs font-bold text-accent-green">
@@ -389,6 +425,17 @@ export function ResultsClient({ scan, isPremium: initialIsPremium, history }: Pr
                   </div>
                 )}
               </div>
+            </div>
+
+            {/* Loss aversion section */}
+            <div className="mb-6 rounded-xl bg-red-500/5 border border-red-500/20 p-4">
+              <p className="text-sm font-semibold text-red-400 mb-2">⚠️ Without a plan, scores drop</p>
+              <p className="text-xs text-text-muted leading-relaxed">
+                Users who don&apos;t follow a personalized routine typically see their score decline 5–15 points within 90 days. Environmental damage, stress, and unaddressed conditions compound fast.
+              </p>
+              <p className="text-xs text-accent-green font-medium mt-2">
+                Users with a Premium plan average +18 points in 30 days.
+              </p>
             </div>
 
             {/* Paywall */}

@@ -5,7 +5,6 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase";
 import type { ScanResult } from "@/lib/scores";
-import { linkOrphanedScans } from "@/lib/linkScans";
 
 export default function AccountPage() {
   const router = useRouter();
@@ -32,11 +31,21 @@ export default function AccountPage() {
       if (session?.user) {
         setUser(session.user);
 
-        // Link any orphaned scans before querying
-        await linkOrphanedScans(supabase, session.user.id);
-
         const storedScanId = localStorage.getItem("mogly_last_scan_id");
+        console.log("User ID:", session.user.id);
+        console.log("localStorage scan ID:", storedScanId);
         if (storedScanId) setLastScanId(storedScanId);
+
+        // Link orphaned scan via service-role API (bypasses RLS)
+        if (storedScanId) {
+          console.log("Attempting to link scan", storedScanId, "to user", session.user.id);
+          const linkRes = await fetch("/api/link-scan", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ scanId: storedScanId }),
+          });
+          console.log("Link result status:", linkRes.status);
+        }
 
         const [scansRes, profileRes, streakRes] = await Promise.all([
           supabase.from("scans").select("*").eq("user_id", session.user.id).order("created_at", { ascending: false }),
@@ -44,7 +53,18 @@ export default function AccountPage() {
           supabase.from("user_streaks").select("current_streak").eq("user_id", session.user.id).single(),
         ]);
 
-        if (scansRes.data) setScans(scansRes.data);
+        console.log("Scans found:", scansRes.data?.length, "Error:", scansRes.error);
+
+        let foundScans = scansRes.data ?? [];
+
+        // Fallback: fetch the localStorage scan directly if query returned nothing
+        if (foundScans.length === 0 && storedScanId) {
+          console.log("Fallback: fetching scan directly by ID:", storedScanId);
+          const { data: directScan } = await supabase.from("scans").select("*").eq("id", storedScanId).single();
+          if (directScan) foundScans = [directScan];
+        }
+
+        setScans(foundScans);
         if (profileRes.data) setIsPremium(profileRes.data.subscription_status === "premium");
         if (streakRes.data) setStreak(streakRes.data.current_streak || 0);
       } else {

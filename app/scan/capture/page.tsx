@@ -27,6 +27,9 @@ function CaptureInner() {
   const [progress, setProgress] = useState(0);
   const [loadingText, setLoadingText] = useState(LOADING_STEPS[0]);
   const [error, setError] = useState<string | null>(null);
+  const [scanLimitReached, setScanLimitReached] = useState(false);
+  const [existingScanId, setExistingScanId] = useState<string | null>(null);
+  const [limitChecked, setLimitChecked] = useState(false);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
@@ -56,6 +59,54 @@ function CaptureInner() {
     raf = requestAnimationFrame(animate);
     return () => cancelAnimationFrame(raf);
   }, [loading]);
+
+  // Scan limit check — free users get 1 scan only
+  useEffect(() => {
+    const checkLimit = async () => {
+      try {
+        const { createClient: createSupa } = await import("@supabase/supabase-js");
+        const supabase = createSupa(
+          process.env.NEXT_PUBLIC_SUPABASE_URL!,
+          process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+        );
+
+        const { data: { session } } = await supabase.auth.getSession();
+
+        if (session?.user) {
+          // Logged-in: check DB for existing scan
+          const { data: profile } = await supabase
+            .from("profiles")
+            .select("subscription_status")
+            .eq("id", session.user.id)
+            .single();
+
+          const isPremium = profile?.subscription_status === "premium";
+          if (!isPremium) {
+            const { data: scans } = await supabase
+              .from("scans")
+              .select("id")
+              .eq("user_id", session.user.id)
+              .limit(1);
+
+            if (scans && scans.length > 0) {
+              setExistingScanId(scans[0].id);
+              setScanLimitReached(true);
+            }
+          }
+        } else {
+          // Anonymous: check localStorage
+          const storedId = localStorage.getItem("mogly_last_scan_id");
+          if (storedId) {
+            setExistingScanId(storedId);
+            setScanLimitReached(true);
+          }
+        }
+      } catch {}
+      setLimitChecked(true);
+    };
+
+    checkLimit();
+  }, []);
 
   const handleFile = useCallback((file: File) => {
     setError(null);
@@ -186,6 +237,43 @@ function CaptureInner() {
         <p style={{ color: "#666", fontSize: "12px", marginTop: "8px" }}>
           This usually takes 5-8 seconds
         </p>
+      </div>
+    );
+  }
+
+  // LIMIT CHECK IN PROGRESS
+  if (!limitChecked) {
+    return (
+      <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", backgroundColor: "#0A0A12" }}>
+        <p style={{ color: "#888", fontSize: "14px" }}>Loading...</p>
+      </div>
+    );
+  }
+
+  // FREE SCAN LIMIT REACHED
+  if (scanLimitReached && existingScanId) {
+    return (
+      <div style={{ minHeight: "100vh", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", backgroundColor: "#0A0A12", padding: "32px", textAlign: "center" }}>
+        <p style={{ fontSize: "52px", marginBottom: "16px" }}>🔒</p>
+        <h2 style={{ color: "#fff", fontSize: "22px", fontWeight: "bold", marginBottom: "8px" }}>Free Scan Used</h2>
+        <p style={{ color: "#888", fontSize: "14px", lineHeight: "1.6", maxWidth: "320px", marginBottom: "32px" }}>
+          Free accounts include 1 AI skin analysis. Upgrade to Premium for unlimited scans and track your improvement over time.
+        </p>
+        <div style={{ width: "100%", maxWidth: "320px", display: "flex", flexDirection: "column", gap: "12px" }}>
+          <a
+            href={`/results/${existingScanId}`}
+            style={{ display: "block", padding: "16px", backgroundColor: "#00E5A0", color: "#000", fontWeight: "bold", fontSize: "16px", borderRadius: "12px", textDecoration: "none" }}
+          >
+            📊 View My Results
+          </a>
+          <a
+            href={`/results/${existingScanId}`}
+            style={{ display: "block", padding: "16px", backgroundColor: "transparent", color: "#00E5A0", fontWeight: "bold", fontSize: "15px", borderRadius: "12px", border: "1px solid rgba(0,229,160,0.3)", textDecoration: "none" }}
+          >
+            ⭐ Upgrade to Premium — Unlimited Scans
+          </a>
+          <p style={{ color: "#444", fontSize: "11px", marginTop: "4px" }}>3-day free trial • Cancel anytime</p>
+        </div>
       </div>
     );
   }

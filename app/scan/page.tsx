@@ -99,13 +99,14 @@ const STEPS: Step[] = [
 /* -------------------------------------------------- */
 /*  Component                                          */
 /* -------------------------------------------------- */
-type ScanStatus = "checking" | "returning_recent" | "returning_old" | "new_user";
+type ScanStatus = "checking" | "returning_recent" | "returning_old" | "new_user" | "upgrade_required";
 
 export default function ScanPage() {
   const router = useRouter();
   const [step, setStep] = useState(0);
   const [scanStatus, setScanStatus] = useState<ScanStatus>("checking");
   const [lastScanId, setLastScanId] = useState<string | null>(null);
+  const [isPremium, setIsPremium] = useState(false);
   const [answers, setAnswers] = useState<Answers>({
     concern: "",
     ageRange: "",
@@ -142,16 +143,17 @@ export default function ScanPage() {
 
       // Logged-in user: check DB
       if (session?.user) {
-        const { data: scans } = await supabase
-          .from("scans")
-          .select("id, created_at")
-          .eq("user_id", session.user.id)
-          .order("created_at", { ascending: false })
-          .limit(1);
+        const [scansRes, profileRes] = await Promise.all([
+          supabase.from("scans").select("id, created_at").eq("user_id", session.user.id).order("created_at", { ascending: false }).limit(1),
+          supabase.from("profiles").select("subscription_status").eq("id", session.user.id).single(),
+        ]);
 
-        if (scans && scans.length > 0) {
-          setLastScanId(scans[0].id);
-          const ageHours = (Date.now() - new Date(scans[0].created_at).getTime()) / 3600000;
+        const premium = profileRes.data?.subscription_status === "premium";
+        setIsPremium(premium);
+
+        if (scansRes.data && scansRes.data.length > 0) {
+          setLastScanId(scansRes.data[0].id);
+          const ageHours = (Date.now() - new Date(scansRes.data[0].created_at).getTime()) / 3600000;
           setScanStatus(ageHours < 24 ? "returning_recent" : "returning_old");
           return;
         }
@@ -233,6 +235,29 @@ export default function ScanPage() {
     );
   }
 
+  // ── UPGRADE REQUIRED ──
+  if (scanStatus === "upgrade_required" && lastScanId) {
+    return (
+      <main className="flex flex-col items-center justify-center min-h-screen bg-bg-primary px-6 text-center pb-24">
+        <p className="text-5xl mb-5">🔒</p>
+        <h2 className="text-2xl font-bold text-text-primary mb-2">Unlock unlimited scans</h2>
+        <p className="text-text-muted mb-8 max-w-xs leading-relaxed">
+          Free users get 1 scan. Upgrade to Premium to track your progress over time.
+        </p>
+        <div className="w-full max-w-xs space-y-3">
+          <a href={`/results/${lastScanId}`}
+            className="flex items-center justify-center gap-2 w-full rounded-xl bg-accent-green py-4 text-black font-bold text-base">
+            ⭐ Upgrade to Premium
+          </a>
+          <a href={`/results/${lastScanId}`}
+            className="flex items-center justify-center gap-2 w-full rounded-xl border border-white/[0.1] py-3.5 text-text-muted text-base hover:border-white/[0.2] hover:text-text-primary transition-colors">
+            📊 View My Results
+          </a>
+        </div>
+      </main>
+    );
+  }
+
   // ── RETURNING — scan within 24h ──
   if (scanStatus === "returning_recent" && lastScanId) {
     return (
@@ -248,7 +273,7 @@ export default function ScanPage() {
             📊 View My Results
           </a>
           <button
-            onClick={() => setScanStatus("new_user")}
+            onClick={() => isPremium ? setScanStatus("new_user") : setScanStatus("upgrade_required")}
             className="flex items-center justify-center gap-2 w-full rounded-xl border border-white/[0.1] py-3.5 text-text-muted text-base hover:border-white/[0.2] hover:text-text-primary transition-colors">
             📸 Take New Scan
           </button>
@@ -267,10 +292,17 @@ export default function ScanPage() {
           See how your skin has improved. We already have your profile — go straight to capture.
         </p>
         <div className="w-full max-w-xs space-y-3">
-          <a href="/scan/capture"
-            className="flex items-center justify-center gap-2 w-full rounded-xl bg-accent-green py-4 text-black font-bold text-base">
-            📸 Scan Again
-          </a>
+          {isPremium ? (
+            <a href="/scan/capture"
+              className="flex items-center justify-center gap-2 w-full rounded-xl bg-accent-green py-4 text-black font-bold text-base">
+              📸 Scan Again
+            </a>
+          ) : (
+            <a href={`/results/${lastScanId}`}
+              className="flex items-center justify-center gap-2 w-full rounded-xl bg-accent-green py-4 text-black font-bold text-base">
+              ⭐ Upgrade for New Scan
+            </a>
+          )}
           <a href={`/results/${lastScanId}`}
             className="flex items-center justify-center gap-2 w-full rounded-xl border border-white/[0.1] py-3.5 text-text-muted text-base hover:border-white/[0.2] hover:text-text-primary transition-colors">
             📊 View Last Results

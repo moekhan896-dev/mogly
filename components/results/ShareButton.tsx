@@ -91,7 +91,7 @@ export function ShareButton({ data }: { data: ShareCardData }) {
           background: `linear-gradient(135deg, #00E5A0 0%, #00B4D8 100%)`,
         }}
       >
-        {generating ? "Generating..." : "📸 Share Your Score Card"}
+        {generating ? "Generating..." : data.overall_score >= 70 ? "Share Your Score 💪" : data.overall_score < 50 ? "Challenge a Friend 👀" : "📸 Share Your Score Card"}
       </button>
 
       {/* Hidden premium share card */}
