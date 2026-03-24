@@ -1,255 +1,225 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { useRouter } from "next/navigation";
-import Link from "next/link";
 import { createClient } from "@/lib/supabase";
 
 interface Message {
   id: string;
   role: "user" | "coach";
   text: string;
-  timestamp: Date;
 }
 
+const FREE_LIMIT = 3;
+const PREMIUM_LIMIT = 100;
+
+function getMonthKey() {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+}
+
+function getCoachCount(): number {
+  try {
+    const storedMonth = localStorage.getItem("mogly_coach_month");
+    const currentMonth = getMonthKey();
+    if (storedMonth !== currentMonth) {
+      localStorage.setItem("mogly_coach_month", currentMonth);
+      localStorage.setItem("mogly_coach_count", "0");
+      return 0;
+    }
+    return parseInt(localStorage.getItem("mogly_coach_count") || "0", 10);
+  } catch {
+    return 0;
+  }
+}
+
+function incrementCoachCount() {
+  try {
+    const current = getCoachCount();
+    localStorage.setItem("mogly_coach_count", String(current + 1));
+  } catch {}
+}
+
+const QUICK_QUESTIONS = [
+  { icon: "☀️", label: "Morning routine" },
+  { icon: "🚫", label: "What to avoid" },
+  { icon: "📈", label: "How to improve" },
+  { icon: "🍎", label: "Foods for skin" },
+];
+
 export function CoachClient() {
-  const router = useRouter();
   const supabase = createClient();
-  
-  const [user, setUser] = useState<{ id: string } | null>(null);
+
   const [latestScan, setLatestScan] = useState<Record<string, unknown> | null>(null);
   const [isPremium, setIsPremium] = useState(false);
-  const [freeMessageUsed, setFreeMessageUsed] = useState(false);
+  const [msgCount, setMsgCount] = useState(0);
   const [loading, setLoading] = useState(true);
-  
-  const [messages, setMessages] = useState<Message[]>([
-    {
-      id: "welcome",
-      role: "coach",
-      text: "Hi! 👋 I'm your Mogly Skin Coach. I've analyzed your skin data and I'm here to help you improve. Ask me anything!",
-      timestamp: new Date(),
-    },
-  ]);
-  
+  const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [sendLoading, setSendLoading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  };
-
   useEffect(() => {
-    scrollToBottom();
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
-  // Load user and scan on mount
   useEffect(() => {
-    const loadUserData = async () => {
-      const {
-        data: { session },
-      } = await supabase.auth.getSession();
-
-      setUser(session?.user || null);
+    const loadData = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
 
       let scan = null;
 
       if (session?.user) {
-        // Logged in: fetch scan by user_id
         const { data: scans } = await supabase
           .from("scans")
           .select("*")
           .eq("user_id", session.user.id)
           .order("created_at", { ascending: false })
           .limit(1);
+        if (scans?.length) scan = scans[0];
 
-        if (scans && scans.length > 0) {
-          scan = scans[0];
-        }
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("subscription_status")
+          .eq("id", session.user.id)
+          .single();
+        setIsPremium(profile?.subscription_status === "premium");
       }
 
-      // Fallback for both logged-in (no linked scan) and anonymous users
       if (!scan) {
-        const lastScanId = localStorage.getItem('mogly_last_scan_id');
+        const lastScanId = localStorage.getItem("mogly_last_scan_id");
         if (lastScanId) {
-          const { data: orphanScan } = await supabase
-            .from('scans')
-            .select('*')
-            .eq('id', lastScanId)
-            .single();
-
-          if (orphanScan) {
-            scan = orphanScan;
-            // If logged in, link the orphaned scan to the account
+          const { data: orphan } = await supabase.from("scans").select("*").eq("id", lastScanId).single();
+          if (orphan) {
+            scan = orphan;
             if (session?.user) {
-              await supabase
-                .from('scans')
-                .update({ user_id: session.user.id })
-                .eq('id', lastScanId);
+              await supabase.from("scans").update({ user_id: session.user.id }).eq("id", lastScanId);
             }
           }
         }
       }
 
-      if (scan) setLatestScan(scan);
-
-      // Check premium status
-      if (session?.user) {
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('subscription_status')
-          .eq('id', session.user.id)
-          .single();
-        setIsPremium(profile?.subscription_status === 'premium');
+      if (scan) {
+        setLatestScan(scan);
+        const conditions = (scan.conditions as Array<{ name: string }>) || [];
+        setMessages([{
+          id: "welcome",
+          role: "coach",
+          text: `Hi! 👋 I've analyzed your skin. Your score is ${scan.overall_score}/100${conditions.length > 0 ? ` and I detected ${conditions.length} condition${conditions.length > 1 ? "s" : ""}: ${conditions.map((c) => c.name).join(", ")}` : ""}. Ask me anything about your skincare routine, products, or diet!`,
+        }]);
       }
 
+      setMsgCount(getCoachCount());
       setLoading(false);
     };
 
-    loadUserData();
+    loadData();
   }, []);
 
-  const handleQuickQuestion = (question: string) => {
-    setInput(question);
-  };
+  const limit = isPremium ? PREMIUM_LIMIT : FREE_LIMIT;
+  const isLimitReached = msgCount >= limit;
 
-  const handleSend = async () => {
-    if (!input.trim() || !latestScan) return;
-    if (!isPremium && freeMessageUsed) return;
+  const sendMessage = async (text: string) => {
+    if (!text.trim() || !latestScan || sendLoading || isLimitReached) return;
 
-    const userMessage: Message = {
-      id: Date.now().toString(),
-      role: "user",
-      text: input,
-      timestamp: new Date(),
-    };
-
-    setMessages((prev) => [...prev, userMessage]);
+    const userMsg: Message = { id: Date.now().toString(), role: "user", text };
+    setMessages((prev) => [...prev, userMsg]);
     setInput("");
     setSendLoading(true);
 
     try {
-      const response = await fetch("/api/coach", {
+      const res = await fetch("/api/coach", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          message: input,
-          scanId: latestScan.id,
-        }),
+        body: JSON.stringify({ message: text, scanId: latestScan.id }),
       });
 
-      if (!response.ok) {
-        throw new Error("Coach API error");
-      }
-
-      const data = await response.json();
-
-      const coachMessage: Message = {
-        id: (Date.now() + 1).toString(),
-        role: "coach",
-        text: data.reply,
-        timestamp: new Date(),
-      };
-
-      setMessages((prev) => [...prev, coachMessage]);
-      if (!isPremium) setFreeMessageUsed(true);
-    } catch (error) {
-      console.error("Coach error:", error);
-      const errorMessage: Message = {
-        id: (Date.now() + 2).toString(),
-        role: "coach",
-        text: "Sorry, I'm having trouble. Try again?",
-        timestamp: new Date(),
-      };
-      setMessages((prev) => [...prev, errorMessage]);
+      const data = await res.json();
+      setMessages((prev) => [...prev, { id: (Date.now() + 1).toString(), role: "coach", text: data.reply }]);
+      incrementCoachCount();
+      setMsgCount((c) => c + 1);
+    } catch {
+      setMessages((prev) => [...prev, { id: (Date.now() + 1).toString(), role: "coach", text: "Sorry, I had trouble. Please try again." }]);
     } finally {
       setSendLoading(false);
     }
   };
 
-  const quickQuestions = [
-    "What should my morning routine be?",
-    "What ingredients should I avoid?",
-    "How can I improve my score?",
-    "What foods help my skin?",
-  ];
-
   if (loading) {
     return (
       <main className="flex min-h-screen items-center justify-center bg-bg-primary">
-        <p className="text-text-muted">Loading your coach...</p>
+        <p className="text-text-muted text-sm">Loading your coach...</p>
       </main>
     );
   }
 
   if (!latestScan) {
     return (
-      <main className="w-full bg-bg-primary" style={{ minHeight: "calc(100vh - 80px)" }}>
-        <div className="flex flex-col items-center justify-center h-full px-6 text-center">
-          <p className="text-6xl mb-6">💬</p>
-          <h2 className="text-3xl font-bold text-text-primary mb-3">Your Skin Coach</h2>
-          <p className="text-base text-text-muted mb-8 max-w-sm leading-relaxed">
-            Complete your first scan to get personalized skincare advice from your AI coach.
-          </p>
-          <a
-            href="/scan"
-            className="inline-block rounded-xl bg-accent-green px-8 py-3 text-black font-semibold text-base"
-          >
-            Take Your First Scan
-          </a>
-        </div>
+      <main className="flex flex-col items-center justify-center min-h-screen bg-bg-primary px-6 text-center pb-24">
+        <p className="text-6xl mb-5">💬</p>
+        <h2 className="text-2xl font-bold text-text-primary mb-3">Your Skin Coach</h2>
+        <p className="text-text-muted mb-8 max-w-xs leading-relaxed">
+          Take your first scan to meet your personal AI coach
+        </p>
+        <a href="/scan" className="rounded-xl bg-accent-green px-8 py-3 text-black font-bold text-base">
+          Get Your Skin Score
+        </a>
       </main>
     );
   }
 
+  const messagesLeft = limit - msgCount;
+
   return (
-    <main className="flex flex-col h-screen bg-bg-primary">
+    <main className="flex flex-col bg-bg-primary" style={{ height: "100dvh" }}>
       {/* Header */}
-      <div className="sticky top-0 bg-bg-primary border-b border-white/[0.06] px-6 py-4 z-10">
-        <h1 className="text-2xl font-bold text-text-primary">Your Skin Coach 💬</h1>
-        <p className="text-xs text-text-muted mt-1">
-          Personalized skincare advice based on your scan
-        </p>
+      <div className="flex-shrink-0 border-b border-white/[0.06] px-5 py-4">
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-lg font-bold text-text-primary">Your Skin Coach 💬</h1>
+            <p className="text-[11px] text-text-muted mt-0.5">AI-powered skincare advice based on your scan</p>
+          </div>
+          <span className="text-[10px] font-mono text-text-muted">
+            {isPremium ? `${messagesLeft} left` : `${messagesLeft}/${FREE_LIMIT} free`}
+          </span>
+        </div>
       </div>
 
-      {/* Quick Questions */}
-      <div className="px-6 py-3 border-b border-white/[0.06] flex gap-2 overflow-x-auto pb-4 scrollbar-hide">
-        {quickQuestions.map((q) => (
+      {/* Quick question pills */}
+      <div className="flex-shrink-0 flex gap-2 px-4 py-3 overflow-x-auto scrollbar-hide border-b border-white/[0.04]">
+        {QUICK_QUESTIONS.map((q) => (
           <button
-            key={q}
-            onClick={() => handleQuickQuestion(q)}
-            className="flex-shrink-0 rounded-full bg-accent-green/10 border border-accent-green/30 px-3 py-1.5 text-xs font-medium text-accent-green hover:bg-accent-green/20 transition-colors whitespace-nowrap"
+            key={q.label}
+            onClick={() => sendMessage(`${q.icon} ${q.label}`)}
+            disabled={isLimitReached || sendLoading}
+            className="flex-shrink-0 rounded-full bg-accent-green/10 border border-accent-green/30 px-3 py-1.5 text-xs font-medium text-accent-green hover:bg-accent-green/20 transition-colors disabled:opacity-40 whitespace-nowrap"
           >
-            {q}
+            {q.icon} {q.label}
           </button>
         ))}
       </div>
 
-      {/* Chat Messages */}
-      <div className="flex-1 overflow-y-auto px-6 py-4 space-y-4 pb-24">
+      {/* Messages */}
+      <div className="flex-1 overflow-y-auto px-4 py-4 space-y-3" style={{ paddingBottom: "100px" }}>
         {messages.map((msg) => (
-          <div
-            key={msg.id}
-            className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}
-          >
-            <div
-              className={`max-w-xs px-4 py-2.5 rounded-2xl text-sm leading-relaxed ${
-                msg.role === "user"
-                  ? "bg-accent-green text-black"
-                  : "bg-bg-card border border-white/[0.06] text-text-primary"
-              }`}
-            >
+          <div key={msg.id} className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
+            <div className={`max-w-[80%] px-4 py-2.5 rounded-2xl text-sm leading-relaxed ${
+              msg.role === "user"
+                ? "bg-accent-green text-black font-medium"
+                : "bg-bg-card border border-white/[0.06] text-text-primary"
+            }`}>
               {msg.text}
             </div>
           </div>
         ))}
+
         {sendLoading && (
           <div className="flex justify-start">
-            <div className="bg-bg-card border border-white/[0.06] text-text-primary px-4 py-2.5 rounded-2xl">
-              <div className="flex gap-1">
-                <div className="w-2 h-2 rounded-full bg-text-muted animate-bounce" />
-                <div className="w-2 h-2 rounded-full bg-text-muted animate-bounce delay-100" />
-                <div className="w-2 h-2 rounded-full bg-text-muted animate-bounce delay-200" />
+            <div className="bg-bg-card border border-white/[0.06] px-4 py-3 rounded-2xl">
+              <div className="flex gap-1.5 items-center">
+                <div className="w-1.5 h-1.5 rounded-full bg-accent-green animate-bounce" />
+                <div className="w-1.5 h-1.5 rounded-full bg-accent-green animate-bounce" style={{ animationDelay: "0.15s" }} />
+                <div className="w-1.5 h-1.5 rounded-full bg-accent-green animate-bounce" style={{ animationDelay: "0.3s" }} />
+                <span className="text-xs text-text-muted ml-1">Coach is thinking...</span>
               </div>
             </div>
           </div>
@@ -257,40 +227,40 @@ export function CoachClient() {
         <div ref={messagesEndRef} />
       </div>
 
-      {/* Premium gate banner after 1 free message */}
-      {!isPremium && freeMessageUsed && (
-        <div className="mx-6 mb-4 rounded-xl bg-accent-green/10 border border-accent-green/30 p-4 text-center">
+      {/* Paywall banner */}
+      {isLimitReached && (
+        <div className="flex-shrink-0 mx-4 mb-3 rounded-xl bg-accent-green/10 border border-accent-green/30 p-4 text-center">
           <p className="text-sm font-semibold text-text-primary mb-1">
-            Upgrade for unlimited coaching
+            {isPremium ? `You've used ${PREMIUM_LIMIT} messages this month` : `${FREE_LIMIT}/${FREE_LIMIT} free messages used`}
           </p>
           <p className="text-xs text-text-muted mb-3">
-            You&apos;ve used your 1 free message. Premium unlocks unlimited AI coaching.
+            {isPremium ? "Your limit resets next month." : "Upgrade to Premium for 100 messages per month."}
           </p>
-          <a
-            href={latestScan ? `/results/${latestScan.id as string}` : "/scan"}
-            className="inline-block rounded-lg bg-accent-green px-5 py-2 text-sm font-bold text-black"
-          >
-            Upgrade to Premium
-          </a>
+          {!isPremium && (
+            <a href={latestScan ? `/results/${latestScan.id as string}` : "/scan"}
+              className="inline-block rounded-lg bg-accent-green px-5 py-2 text-sm font-bold text-black">
+              Upgrade to Premium
+            </a>
+          )}
         </div>
       )}
 
-      {/* Input Area */}
-      <div className="fixed bottom-0 left-0 right-0 bg-bg-primary border-t border-white/[0.06] px-6 py-4 max-w-[480px] mx-auto w-full">
+      {/* Input */}
+      <div className="flex-shrink-0 border-t border-white/[0.06] px-4 py-3 bg-bg-primary" style={{ paddingBottom: "calc(env(safe-area-inset-bottom) + 72px)" }}>
         <div className="flex gap-2">
           <input
             type="text"
             value={input}
             onChange={(e) => setInput(e.target.value)}
-            onKeyPress={(e) => e.key === "Enter" && handleSend()}
-            placeholder={!isPremium && freeMessageUsed ? "Upgrade to send more messages" : "Ask your coach..."}
-            className="flex-1 rounded-full bg-white/[0.06] border border-white/[0.08] px-4 py-2.5 text-sm text-white placeholder-white/30 outline-none focus:border-accent-green/50 transition-colors disabled:opacity-50"
-            disabled={sendLoading || (!isPremium && freeMessageUsed)}
+            onKeyDown={(e) => e.key === "Enter" && !e.shiftKey && sendMessage(input)}
+            placeholder={isLimitReached ? "Upgrade to keep chatting" : "Ask your coach..."}
+            disabled={sendLoading || isLimitReached}
+            className="flex-1 rounded-full bg-white/[0.06] border border-white/[0.08] px-4 py-2.5 text-sm text-white placeholder-white/30 outline-none focus:border-accent-green/50 transition-colors disabled:opacity-40"
           />
           <button
-            onClick={handleSend}
-            disabled={sendLoading || !input.trim() || (!isPremium && freeMessageUsed)}
-            className="rounded-full bg-accent-green px-4 py-2.5 text-sm font-bold text-black hover:brightness-110 disabled:opacity-50 transition-all"
+            onClick={() => sendMessage(input)}
+            disabled={sendLoading || !input.trim() || isLimitReached}
+            className="rounded-full bg-accent-green px-4 py-2.5 text-sm font-bold text-black hover:brightness-110 disabled:opacity-40 transition-all"
           >
             Send
           </button>

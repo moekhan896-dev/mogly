@@ -29,6 +29,7 @@ function CaptureInner() {
   const [error, setError] = useState<string | null>(null);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const cameraInputRef = useRef<HTMLInputElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
   // Smooth progress animation — reaches 95% in 6 seconds while API runs
@@ -197,39 +198,72 @@ function CaptureInner() {
       {/* UPLOAD AREA - shown when no preview */}
       {!preview && (
         <div style={{ maxWidth: "400px", margin: "0 auto", marginTop: "40px" }}>
+          {/* Hidden inputs */}
+          <input
+            ref={cameraInputRef}
+            type="file"
+            accept="image/jpeg,image/png,image/webp"
+            capture="user"
+            style={{ display: "none" }}
+            onChange={(e) => { const f = e.target.files?.[0]; if (f) handleFile(f); e.target.value = ""; }}
+          />
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/jpeg,image/png,image/webp"
+            style={{ display: "none" }}
+            onChange={(e) => { const f = e.target.files?.[0]; if (f) handleFile(f); e.target.value = ""; }}
+          />
+
+          {/* Drop zone */}
           <div
-            onClick={() => fileInputRef.current?.click()}
             style={{
               width: "100%",
               aspectRatio: "3/4",
-              borderRadius: "16px",
-              border: "2px dashed #333",
+              borderRadius: "20px",
+              border: "2px dashed #2a2a3e",
               display: "flex",
               flexDirection: "column",
               alignItems: "center",
               justifyContent: "center",
-              cursor: "pointer",
-              backgroundColor: "#12121E",
+              backgroundColor: "#0e0e1a",
+              marginBottom: "16px",
             }}
           >
-            <div style={{ fontSize: "48px", marginBottom: "16px" }}>📸</div>
-            <p style={{ color: "#888", fontSize: "16px", textAlign: "center" }}>
-              Tap to take a selfie<br />or upload a photo
+            <div style={{ fontSize: "52px", marginBottom: "12px" }}>🤳</div>
+            <p style={{ color: "#aaa", fontSize: "15px", fontWeight: "600", textAlign: "center", marginBottom: "4px" }}>
+              Your skin selfie
             </p>
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept="image/jpeg,image/png,image/webp"
-              capture="user"
-              style={{ display: "none" }}
-              onChange={(e) => {
-                const file = e.target.files?.[0];
-                if (file) handleFile(file);
-              }}
-            />
+            <p style={{ color: "#555", fontSize: "12px", textAlign: "center" }}>
+              Front-facing, good lighting
+            </p>
           </div>
-          <p style={{ color: "#555", fontSize: "11px", textAlign: "center", marginTop: "16px", fontFamily: "monospace" }}>
-            AI will analyze 10 skin health dimensions
+
+          {/* Two action buttons */}
+          <button
+            onClick={() => cameraInputRef.current?.click()}
+            style={{
+              width: "100%", padding: "16px", marginBottom: "10px",
+              backgroundColor: "#00E5A0", color: "#000", fontWeight: "700",
+              fontSize: "16px", borderRadius: "14px", border: "none", cursor: "pointer",
+            }}
+          >
+            📷 Take a Selfie
+          </button>
+          <button
+            onClick={() => fileInputRef.current?.click()}
+            style={{
+              width: "100%", padding: "14px",
+              backgroundColor: "transparent", color: "#ccc",
+              fontSize: "15px", borderRadius: "14px",
+              border: "1px solid #2a2a3e", cursor: "pointer",
+            }}
+          >
+            🖼️ Choose from Gallery
+          </button>
+
+          <p style={{ color: "#444", fontSize: "11px", textAlign: "center", marginTop: "16px", fontFamily: "monospace" }}>
+            AI analyzes 10 skin health dimensions • Private &amp; secure
           </p>
         </div>
       )}
@@ -238,17 +272,21 @@ function CaptureInner() {
       {preview && (
         <div style={{ maxWidth: "400px", margin: "0 auto", marginTop: "20px" }}>
           {/* Photo preview */}
-          <img
-            src={preview}
-            alt="Your photo"
-            style={{
-              width: "100%",
-              maxHeight: "450px",
-              objectFit: "cover",
-              borderRadius: "16px",
-              display: "block",
-            }}
-          />
+          <div style={{ position: "relative", borderRadius: "20px", overflow: "hidden", marginBottom: "16px" }}>
+            <img
+              src={preview}
+              alt="Your photo"
+              style={{
+                width: "100%",
+                maxHeight: "460px",
+                objectFit: "cover",
+                display: "block",
+              }}
+            />
+            <div style={{ position: "absolute", bottom: "12px", left: "12px", backgroundColor: "rgba(0,0,0,0.6)", borderRadius: "8px", padding: "4px 10px" }}>
+              <p style={{ color: "#00E5A0", fontSize: "11px", fontFamily: "monospace" }}>✓ Photo ready</p>
+            </div>
+          </div>
 
           {/* ANALYZE BUTTON */}
           <button

@@ -99,10 +99,13 @@ const STEPS: Step[] = [
 /* -------------------------------------------------- */
 /*  Component                                          */
 /* -------------------------------------------------- */
+type ScanStatus = "checking" | "returning_recent" | "returning_old" | "new_user";
+
 export default function ScanPage() {
   const router = useRouter();
   const [step, setStep] = useState(0);
-  const [checking, setChecking] = useState(true);
+  const [scanStatus, setScanStatus] = useState<ScanStatus>("checking");
+  const [lastScanId, setLastScanId] = useState<string | null>(null);
   const [answers, setAnswers] = useState<Answers>({
     concern: "",
     ageRange: "",
@@ -113,35 +116,69 @@ export default function ScanPage() {
   const [direction, setDirection] = useState<"forward" | "back">("forward");
   const [animating, setAnimating] = useState(false);
 
-  // Check if user already has a scan — if so, skip to capture
   useEffect(() => {
     const checkScanStatus = async () => {
       const supabase = createClient();
       const { data: { session } } = await supabase.auth.getSession();
 
-      if (session?.user) {
-        // User is logged in, check if they have a scan
-        const { data: scans } = await supabase
-          .from("scans")
-          .select("id")
-          .eq("user_id", session.user.id)
-          .limit(1);
+      // Check localStorage first (works for both logged-in and anonymous)
+      const storedScanId = localStorage.getItem("mogly_last_scan_id");
 
-        if (scans && scans.length > 0) {
-          // User already has a scan, skip quiz and go to capture
-          router.push("/scan/capture");
+      if (storedScanId) {
+        // Verify the scan exists and get its date
+        const { data: scan } = await supabase
+          .from("scans")
+          .select("id, created_at")
+          .eq("id", storedScanId)
+          .single();
+
+        if (scan) {
+          setLastScanId(scan.id);
+          const ageHours = (Date.now() - new Date(scan.created_at).getTime()) / 3600000;
+          setScanStatus(ageHours < 24 ? "returning_recent" : "returning_old");
           return;
         }
       }
 
-      setChecking(false);
+      // Logged-in user: check DB
+      if (session?.user) {
+        const { data: scans } = await supabase
+          .from("scans")
+          .select("id, created_at")
+          .eq("user_id", session.user.id)
+          .order("created_at", { ascending: false })
+          .limit(1);
+
+        if (scans && scans.length > 0) {
+          setLastScanId(scans[0].id);
+          const ageHours = (Date.now() - new Date(scans[0].created_at).getTime()) / 3600000;
+          setScanStatus(ageHours < 24 ? "returning_recent" : "returning_old");
+          return;
+        }
+      }
+
+      setScanStatus("new_user");
     };
 
     checkScanStatus();
   }, [router]);
 
+  // Restore saved onboarding answers for returning users
+  useEffect(() => {
+    if (scanStatus === "returning_old") {
+      try {
+        const saved = localStorage.getItem("mogly_onboarding");
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          setAnswers(parsed);
+        }
+      } catch {}
+    }
+  }, [scanStatus]);
+
   const current = STEPS[step];
 
+  // Hooks must be before any early returns
   const select = useCallback(
     (value: string) => {
       if (animating) return;
@@ -149,10 +186,8 @@ export default function ScanPage() {
       const updated = { ...answers, [current.key]: value };
       setAnswers(updated);
 
-      // Track quiz step
       analytics.quizStep(step, value);
 
-      // Save to localStorage for anonymous users
       try {
         localStorage.setItem("mogly_onboarding", JSON.stringify(updated));
       } catch {}
@@ -165,7 +200,6 @@ export default function ScanPage() {
           setAnimating(false);
         }, 300);
       } else {
-        // Last question — navigate to capture
         setTimeout(() => {
           const params = new URLSearchParams({
             concern: updated.concern,
@@ -190,10 +224,58 @@ export default function ScanPage() {
     }, 250);
   }, [step, animating]);
 
-  if (checking) {
+  // ── CHECKING ──
+  if (scanStatus === "checking") {
     return (
       <main className="flex min-h-screen items-center justify-center bg-bg-primary">
-        <p className="text-text-muted">Checking your scans...</p>
+        <p className="text-text-muted text-sm">Loading...</p>
+      </main>
+    );
+  }
+
+  // ── RETURNING — scan within 24h ──
+  if (scanStatus === "returning_recent" && lastScanId) {
+    return (
+      <main className="flex flex-col items-center justify-center min-h-screen bg-bg-primary px-6 text-center pb-24">
+        <p className="text-5xl mb-5">📊</p>
+        <h2 className="text-2xl font-bold text-text-primary mb-2">You scanned recently!</h2>
+        <p className="text-text-muted mb-8 max-w-xs leading-relaxed">
+          Your results are still fresh. View them or take a new scan now.
+        </p>
+        <div className="w-full max-w-xs space-y-3">
+          <a href={`/results/${lastScanId}`}
+            className="flex items-center justify-center gap-2 w-full rounded-xl bg-accent-green py-4 text-black font-bold text-base">
+            📊 View My Results
+          </a>
+          <button
+            onClick={() => setScanStatus("new_user")}
+            className="flex items-center justify-center gap-2 w-full rounded-xl border border-white/[0.1] py-3.5 text-text-muted text-base hover:border-white/[0.2] hover:text-text-primary transition-colors">
+            📸 Take New Scan
+          </button>
+        </div>
+      </main>
+    );
+  }
+
+  // ── RETURNING — scan older than 24h ──
+  if (scanStatus === "returning_old" && lastScanId) {
+    return (
+      <main className="flex flex-col items-center justify-center min-h-screen bg-bg-primary px-6 text-center pb-24">
+        <p className="text-5xl mb-5">🔄</p>
+        <h2 className="text-2xl font-bold text-text-primary mb-2">Time for a new scan!</h2>
+        <p className="text-text-muted mb-8 max-w-xs leading-relaxed">
+          See how your skin has improved. We already have your profile — go straight to capture.
+        </p>
+        <div className="w-full max-w-xs space-y-3">
+          <a href="/scan/capture"
+            className="flex items-center justify-center gap-2 w-full rounded-xl bg-accent-green py-4 text-black font-bold text-base">
+            📸 Scan Again
+          </a>
+          <a href={`/results/${lastScanId}`}
+            className="flex items-center justify-center gap-2 w-full rounded-xl border border-white/[0.1] py-3.5 text-text-muted text-base hover:border-white/[0.2] hover:text-text-primary transition-colors">
+            📊 View Last Results
+          </a>
+        </div>
       </main>
     );
   }
