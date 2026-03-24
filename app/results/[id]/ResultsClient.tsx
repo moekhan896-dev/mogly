@@ -27,6 +27,7 @@ export function ResultsClient({ scan, isPremium: initialIsPremium, history }: Pr
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [isPremium, setIsPremium] = useState(initialIsPremium);
   const [showAccountModal, setShowAccountModal] = useState(false);
+  const [authMode, setAuthMode] = useState<"signin" | "signup">("signin");
   const [modalEmail, setModalEmail] = useState("");
   const [modalPassword, setModalPassword] = useState("");
   const [modalError, setModalError] = useState<string | null>(null);
@@ -34,7 +35,7 @@ export function ResultsClient({ scan, isPremium: initialIsPremium, history }: Pr
   const [email, setEmail] = useState("");
   const [emailStatus, setEmailStatus] = useState<"idle" | "sending" | "success" | "error">("idle");
   const [savedGoal, setSavedGoal] = useState<string | null>(null);
-  
+
   const upgraded = searchParams.get("upgraded") === "true";
 
   // Save scan ID to localStorage for later account linking
@@ -46,15 +47,26 @@ export function ResultsClient({ scan, isPremium: initialIsPremium, history }: Pr
     } catch {}
   }, [scan.id]);
 
-  // Check if user is logged in and should show modal
+  // Check auth; if upgraded=true + already logged in, save premium to DB immediately
   useEffect(() => {
     const checkAuth = async () => {
       const { data: { session } } = await supabase.auth.getSession();
       const logged = !!session;
       setIsLoggedIn(logged);
 
-      // If upgraded=true and NOT logged in, show modal
-      if (upgraded && !logged) {
+      if (upgraded && logged && session?.user) {
+        // Persist premium in DB right away
+        await supabase.from("profiles")
+          .update({ subscription_status: "premium" })
+          .eq("id", session.user.id);
+        // Link scan to user
+        await fetch("/api/link-scan", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ scanId: scan.id }),
+        });
+        setIsPremium(true);
+      } else if (upgraded && !logged) {
         setShowAccountModal(true);
       }
     };
@@ -62,67 +74,47 @@ export function ResultsClient({ scan, isPremium: initialIsPremium, history }: Pr
     checkAuth();
   }, [upgraded]);
 
-  const handleAccountSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (!modalEmail || !modalPassword) {
-      setModalError("Email and password required");
-      return;
-    }
-    if (modalPassword.length < 6) {
-      setModalError("Password must be at least 6 characters");
-      return;
-    }
+  const savePremiumAndReload = async (userId: string) => {
+    // Save to DB via service-role API
+    await fetch("/api/link-scan", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ scanId: scan.id }),
+    });
+    // Update profile directly — user is now logged in so RLS allows own-row update
+    await supabase.from("profiles")
+      .update({ subscription_status: "premium" })
+      .eq("id", userId);
+    window.location.reload();
+  };
 
+  const handleSignIn = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!modalEmail || !modalPassword) { setModalError("Email and password required"); return; }
     setModalLoading(true);
     setModalError(null);
-
     try {
-      // Sign up
-      const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
-        email: modalEmail,
-        password: modalPassword,
-      });
-
-      if (signUpError) {
-        setModalError(signUpError.message);
-        setModalLoading(false);
-        return;
-      }
-
-      if (!signUpData.user?.id) {
-        setModalError("Account creation failed");
-        setModalLoading(false);
-        return;
-      }
-
-      // Link scan to user
-      const { error: scanError } = await supabase
-        .from("scans")
-        .update({ user_id: signUpData.user.id })
-        .eq("id", scan.id);
-
-      if (scanError) {
-        console.warn("Could not link scan:", scanError);
-      }
-
-      // Mark as premium
-      const { error: profileError } = await supabase
-        .from("profiles")
-        .upsert({
-          user_id: signUpData.user.id,
-          subscription_status: "premium",
-        }, { onConflict: "user_id" });
-
-      if (profileError) {
-        console.warn("Could not update profile:", profileError);
-      }
-
-      // Account created successfully - hide modal and show premium content
-      setShowAccountModal(false);
-      setIsLoggedIn(true);
-      setIsPremium(true);
+      const { data, error } = await supabase.auth.signInWithPassword({ email: modalEmail, password: modalPassword });
+      if (error) { setModalError(error.message); setModalLoading(false); return; }
+      if (!data.user?.id) { setModalError("Sign in failed"); setModalLoading(false); return; }
+      await savePremiumAndReload(data.user.id);
+    } catch (err) {
+      setModalError(err instanceof Error ? err.message : "Something went wrong");
       setModalLoading(false);
+    }
+  };
+
+  const handleSignUp = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!modalEmail || !modalPassword) { setModalError("Email and password required"); return; }
+    if (modalPassword.length < 6) { setModalError("Password must be at least 6 characters"); return; }
+    setModalLoading(true);
+    setModalError(null);
+    try {
+      const { data, error } = await supabase.auth.signUp({ email: modalEmail, password: modalPassword });
+      if (error) { setModalError(error.message); setModalLoading(false); return; }
+      if (!data.user?.id) { setModalError("Account creation failed"); setModalLoading(false); return; }
+      await savePremiumAndReload(data.user.id);
     } catch (err) {
       setModalError(err instanceof Error ? err.message : "Something went wrong");
       setModalLoading(false);
@@ -186,15 +178,31 @@ export function ResultsClient({ scan, isPremium: initialIsPremium, history }: Pr
     return (
       <div className="fixed inset-0 z-50 bg-black/95 flex items-center justify-center p-6">
         <div className="w-full max-w-md rounded-2xl bg-bg-card border border-accent-green/20 p-8">
-          <div className="text-center mb-8">
+          <div className="text-center mb-6">
             <p className="text-5xl mb-3">✅</p>
             <h2 className="text-2xl font-bold text-white mb-2">Payment Successful!</h2>
             <p className="text-sm text-text-muted">
-              Create your account to unlock your full results, AI Coach, Daily Routine, and exclusive insights
+              Sign in or create an account to unlock your full results, AI Coach, and Daily Routine
             </p>
           </div>
 
-          <form onSubmit={handleAccountSubmit} className="space-y-3 mb-4">
+          {/* Auth mode toggle */}
+          <div className="flex rounded-lg overflow-hidden border border-white/[0.1] mb-4">
+            <button
+              onClick={() => { setAuthMode("signin"); setModalError(null); }}
+              className={`flex-1 py-2.5 text-sm font-bold transition-colors ${authMode === "signin" ? "bg-accent-green text-black" : "bg-transparent text-text-muted"}`}
+            >
+              Sign In
+            </button>
+            <button
+              onClick={() => { setAuthMode("signup"); setModalError(null); }}
+              className={`flex-1 py-2.5 text-sm font-bold transition-colors ${authMode === "signup" ? "bg-accent-green text-black" : "bg-transparent text-text-muted"}`}
+            >
+              Create Account
+            </button>
+          </div>
+
+          <form onSubmit={authMode === "signin" ? handleSignIn : handleSignUp} className="space-y-3">
             <input
               type="email"
               placeholder="Email"
@@ -205,59 +213,41 @@ export function ResultsClient({ scan, isPremium: initialIsPremium, history }: Pr
             />
             <input
               type="password"
-              placeholder="Password (6+ characters)"
+              placeholder={authMode === "signup" ? "Password (6+ characters)" : "Password"}
               value={modalPassword}
               onChange={(e) => setModalPassword(e.target.value)}
               className="w-full rounded-lg bg-white/[0.06] border border-white/[0.08] px-4 py-3 text-white placeholder-white/30 outline-none focus:border-accent-green/50 text-sm"
               required
-              minLength={6}
+              minLength={authMode === "signup" ? 6 : undefined}
             />
 
             {modalError && (
-              <div className="rounded-lg bg-accent-red/10 border border-accent-red/20 px-3 py-2">
-                <p className="text-xs text-accent-red text-center">{modalError}</p>
+              <div className="rounded-lg bg-red-500/10 border border-red-500/20 px-3 py-2">
+                <p className="text-xs text-red-400 text-center">{modalError}</p>
               </div>
             )}
 
             <button
               type="submit"
               disabled={modalLoading}
-              className="w-full rounded-xl bg-accent-green py-3 text-black font-bold text-lg hover:brightness-110 disabled:opacity-50 transition-all"
+              className="w-full rounded-xl bg-accent-green py-3 text-black font-bold text-base hover:brightness-110 disabled:opacity-50 transition-all"
             >
-              {modalLoading ? "Creating..." : "Create Account & View Results"}
+              {modalLoading
+                ? "..."
+                : authMode === "signin"
+                ? "Sign In & Unlock"
+                : "Create Account & Unlock"}
             </button>
           </form>
 
-          <div className="relative mb-4">
-            <div className="absolute inset-0 flex items-center">
-              <div className="w-full border-t border-white/[0.1]"></div>
-            </div>
-            <div className="relative flex justify-center text-sm">
-              <span className="px-2 bg-bg-card text-text-muted">or</span>
-            </div>
-          </div>
-
-          <button
-            onClick={async () => {
-              try {
-                const { error } = await supabase.auth.signInWithOAuth({
-                  provider: 'google',
-                  options: {
-                    redirectTo: `${window.location.origin}/auth/callback`,
-                  },
-                });
-                if (error) setModalError(error.message);
-              } catch (err) {
-                setModalError('Google sign-in failed');
-              }
-            }}
-            className="w-full rounded-xl bg-white/[0.06] border border-white/[0.08] py-3 text-white font-semibold hover:bg-white/[0.1] transition-all mb-3"
-          >
-            Sign in with Google
-          </button>
-
-          <p className="text-xs text-text-muted text-center">
-            Your premium access is secured. Create an account to unlock everything.
+          <p className="text-xs text-text-muted text-center mt-4">
+            Your premium access is secured. {authMode === "signin" ? "Don't have an account?" : "Already have an account?"}{" "}
+            <button
+              onClick={() => { setAuthMode(authMode === "signin" ? "signup" : "signin"); setModalError(null); }}
+              className="text-accent-green underline"
+            >
+              {authMode === "signin" ? "Create one" : "Sign in"}
+            </button>
           </p>
         </div>
       </div>

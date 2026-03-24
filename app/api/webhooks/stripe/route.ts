@@ -50,11 +50,9 @@ export async function POST(req: NextRequest) {
 
         if (!customerId) break;
 
-        // Get subscription to check if trial
-        const sub = await stripe.subscriptions.retrieve(subscriptionId);
-        const status = sub.trial_end && sub.trial_end > Date.now() / 1000
-          ? "trial"
-          : "active";
+        // Always mark as premium on checkout completion
+        await stripe.subscriptions.retrieve(subscriptionId);
+        const status = "premium";
 
         // Find user by email or create mapping
         const customerEmail = session.customer_details?.email;
@@ -112,12 +110,10 @@ export async function POST(req: NextRequest) {
         const customerId = sub.customer as string;
 
         let status: string;
-        if (sub.status === "active") {
-          status = sub.trial_end && sub.trial_end > Date.now() / 1000
-            ? "trial"
-            : "active";
+        if (sub.status === "active" || sub.status === "trialing") {
+          status = "premium";
         } else if (sub.status === "past_due" || sub.status === "unpaid") {
-          status = "active"; // grace period
+          status = "premium"; // grace period
         } else {
           status = "cancelled";
         }
