@@ -64,11 +64,8 @@ function CaptureInner() {
   useEffect(() => {
     const checkLimit = async () => {
       try {
-        const { createClient: createSupa } = await import("@supabase/supabase-js");
-        const supabase = createSupa(
-          process.env.NEXT_PUBLIC_SUPABASE_URL!,
-          process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-        );
+        const { createClient: createSupa } = await import("@/lib/supabase");
+        const supabase = createSupa();
 
         const { data: { session } } = await supabase.auth.getSession();
 
@@ -157,11 +154,8 @@ function CaptureInner() {
       });
 
       // Upload to Supabase
-      const { createClient } = await import("@supabase/supabase-js");
-      const supabase = createClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-      );
+      const { createClient } = await import("@/lib/supabase");
+      const supabase = createClient();
 
       const timestamp = Date.now();
       const fileName = `mogly-${timestamp}.jpg`;
