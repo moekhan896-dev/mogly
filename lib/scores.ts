@@ -31,6 +31,7 @@ export function getSeverityColor(severity: string): string {
 export interface ScanResult {
   id: string;
   created_at: string;
+  image_url?: string;
   overall_score: number;
   clarity_score: number;
   glow_score: number;

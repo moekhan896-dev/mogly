@@ -320,6 +320,38 @@ export function ResultsClient({ scan, isPremium: initialIsPremium, history }: Pr
           </>
         ) : (
           <>
+            {/* Treatment plan teaser — step 1 visible, rest blurred */}
+            {scan.improvement_plan && scan.improvement_plan.length > 0 && (
+              <div className="mb-6">
+                <h3 className="font-mono text-[10px] uppercase tracking-[0.15em] text-text-muted mb-4">
+                  Treatment Protocol
+                </h3>
+                <div className="flex flex-col gap-3">
+                  {scan.improvement_plan.map((p, i) => (
+                    <div
+                      key={i}
+                      className="rounded-xl bg-bg-card border border-white/[0.06] px-4 py-3.5"
+                      style={i > 0 ? { filter: "blur(4px)", userSelect: "none", pointerEvents: "none" } : {}}
+                    >
+                      <div className="flex items-start gap-3">
+                        <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-accent-green/10 text-xs font-bold text-accent-green">
+                          {i === 0 ? p.step : "🔒"}
+                        </span>
+                        <div>
+                          <p className="text-sm font-semibold text-text-primary">{p.action}</p>
+                          <p className="text-xs text-text-muted mt-1">{p.why}</p>
+                          <p className="text-xs text-accent-green mt-1 font-medium">{p.impact}</p>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                <p className="text-center text-xs text-text-muted mt-3">
+                  Unlock all {scan.improvement_plan.length} steps with Premium
+                </p>
+              </div>
+            )}
+
             {/* Email capture */}
             <div className="mb-6">
               <div className="rounded-xl bg-bg-card border border-white/[0.06] p-5 text-center">

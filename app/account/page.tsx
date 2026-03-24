@@ -254,8 +254,12 @@ export default function AccountPage() {
                   href={`/results/${scan.id}`}
                   className="flex items-center gap-4 bg-bg-card rounded-xl p-4 border border-white/[0.06] hover:border-accent-green/20 transition-colors"
                 >
-                  <div className="w-12 h-12 rounded-full bg-gradient-to-br from-accent-green/20 to-accent-green/5 border border-accent-green/20 flex items-center justify-center flex-shrink-0">
-                    <span className="text-lg">📊</span>
+                  <div className="w-12 h-12 rounded-full bg-gradient-to-br from-accent-green/20 to-accent-green/5 border border-accent-green/20 flex-shrink-0 overflow-hidden">
+                    {scan.image_url ? (
+                      <img src={scan.image_url} alt="Scan" className="w-full h-full object-cover" />
+                    ) : (
+                      <span className="text-lg flex items-center justify-center w-full h-full">📊</span>
+                    )}
                   </div>
                   <div className="flex-1">
                     <p className="text-text-primary font-semibold">

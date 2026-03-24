@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useCallback } from "react";
+import { useState, useRef, useCallback, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense } from "react";
 
@@ -24,11 +24,37 @@ function CaptureInner() {
   const [preview, setPreview] = useState<string | null>(null);
   const [capturedBlob, setCapturedBlob] = useState<Blob | null>(null);
   const [loading, setLoading] = useState(false);
-  const [loadingStep, setLoadingStep] = useState(0);
+  const [progress, setProgress] = useState(0);
+  const [loadingText, setLoadingText] = useState(LOADING_STEPS[0]);
   const [error, setError] = useState<string | null>(null);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
+
+  // Smooth progress animation — reaches 95% in 6 seconds while API runs
+  useEffect(() => {
+    if (!loading) return;
+    const startTime = Date.now();
+    const duration = 6000;
+    let raf: number;
+
+    const animate = () => {
+      const elapsed = Date.now() - startTime;
+      const p = Math.min((elapsed / duration) * 95, 95);
+      setProgress(p);
+      const stepIndex = Math.min(
+        Math.floor((p / 95) * LOADING_STEPS.length),
+        LOADING_STEPS.length - 1
+      );
+      setLoadingText(LOADING_STEPS[stepIndex]);
+      if (p < 95) {
+        raf = requestAnimationFrame(animate);
+      }
+    };
+
+    raf = requestAnimationFrame(animate);
+    return () => cancelAnimationFrame(raf);
+  }, [loading]);
 
   const handleFile = useCallback((file: File) => {
     setError(null);
@@ -53,12 +79,8 @@ function CaptureInner() {
   const submit = useCallback(async () => {
     if (!capturedBlob) return;
     setLoading(true);
-    setLoadingStep(0);
+    setProgress(0);
     setError(null);
-
-    const interval = setInterval(() => {
-      setLoadingStep((s) => (s < LOADING_STEPS.length - 1 ? s + 1 : s));
-    }, 1200);
 
     try {
       // Compress
@@ -121,8 +143,6 @@ function CaptureInner() {
         }),
       });
 
-      clearInterval(interval);
-
       const data = await res.json();
 
       if (!res.ok) {
@@ -133,9 +153,11 @@ function CaptureInner() {
         localStorage.setItem("mogly_last_scan_id", data.scanId);
       }
 
+      // Jump to 100% briefly then redirect
+      setProgress(100);
+      await new Promise((r) => setTimeout(r, 300));
       window.location.href = `/results/${data.scanId || 1}`;
     } catch (err) {
-      clearInterval(interval);
       setLoading(false);
       const message = err instanceof Error ? err.message : "Unknown error";
       setError(`Failed: ${message}`);
@@ -149,16 +171,16 @@ function CaptureInner() {
         <div style={{ marginBottom: "24px", position: "relative", width: "80px", height: "80px" }}>
           <svg width="80" height="80" viewBox="0 0 80 80">
             <circle cx="40" cy="40" r="34" fill="none" stroke="#12121E" strokeWidth="4" />
-            <circle cx="40" cy="40" r="34" fill="none" stroke="#00E5A0" strokeWidth="4" strokeLinecap="round" strokeDasharray={`${((loadingStep + 1) / LOADING_STEPS.length) * 213} 213`} transform="rotate(-90 40 40)" />
+            <circle cx="40" cy="40" r="34" fill="none" stroke="#00E5A0" strokeWidth="4" strokeLinecap="round" strokeDasharray={`${(progress / 100) * 213} 213`} transform="rotate(-90 40 40)" />
           </svg>
           <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center" }}>
             <span style={{ fontSize: "20px", fontWeight: "bold", color: "#00E5A0" }}>
-              {Math.round(((loadingStep + 1) / LOADING_STEPS.length) * 100)}%
+              {Math.round(progress)}%
             </span>
           </div>
         </div>
         <p style={{ color: "#00E5A0", fontSize: "14px", fontFamily: "monospace", textAlign: "center" }}>
-          {LOADING_STEPS[loadingStep]}
+          {loadingText}
         </p>
         <p style={{ color: "#666", fontSize: "12px", marginTop: "8px" }}>
           This usually takes 5-8 seconds

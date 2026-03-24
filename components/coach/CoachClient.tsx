@@ -18,6 +18,8 @@ export function CoachClient() {
   
   const [user, setUser] = useState<{ id: string } | null>(null);
   const [latestScan, setLatestScan] = useState<Record<string, unknown> | null>(null);
+  const [isPremium, setIsPremium] = useState(false);
+  const [freeMessageUsed, setFreeMessageUsed] = useState(false);
   const [loading, setLoading] = useState(true);
   
   const [messages, setMessages] = useState<Message[]>([
@@ -50,21 +52,24 @@ export function CoachClient() {
 
       setUser(session?.user || null);
 
-      if (!session?.user) {
-        setLoading(false);
-        return;
+      let scan = null;
+
+      if (session?.user) {
+        // Logged in: fetch scan by user_id
+        const { data: scans } = await supabase
+          .from("scans")
+          .select("*")
+          .eq("user_id", session.user.id)
+          .order("created_at", { ascending: false })
+          .limit(1);
+
+        if (scans && scans.length > 0) {
+          scan = scans[0];
+        }
       }
 
-      // Fetch latest scan
-      let { data: scans } = await supabase
-        .from("scans")
-        .select("*")
-        .eq("user_id", session.user.id)
-        .order("created_at", { ascending: false })
-        .limit(1);
-
-      // Fallback: if no scans found, check localStorage for orphaned scan
-      if (!scans || scans.length === 0) {
+      // Fallback for both logged-in (no linked scan) and anonymous users
+      if (!scan) {
         const lastScanId = localStorage.getItem('mogly_last_scan_id');
         if (lastScanId) {
           const { data: orphanScan } = await supabase
@@ -72,21 +77,30 @@ export function CoachClient() {
             .select('*')
             .eq('id', lastScanId)
             .single();
-          
+
           if (orphanScan) {
-            // Link it to this user
-            await supabase
-              .from('scans')
-              .update({ user_id: session.user.id })
-              .eq('id', lastScanId);
-            
-            scans = [orphanScan];
+            scan = orphanScan;
+            // If logged in, link the orphaned scan to the account
+            if (session?.user) {
+              await supabase
+                .from('scans')
+                .update({ user_id: session.user.id })
+                .eq('id', lastScanId);
+            }
           }
         }
       }
 
-      if (scans && scans.length > 0) {
-        setLatestScan(scans[0]);
+      if (scan) setLatestScan(scan);
+
+      // Check premium status
+      if (session?.user) {
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('subscription_status')
+          .eq('id', session.user.id)
+          .single();
+        setIsPremium(profile?.subscription_status === 'premium');
       }
 
       setLoading(false);
@@ -101,6 +115,7 @@ export function CoachClient() {
 
   const handleSend = async () => {
     if (!input.trim() || !latestScan) return;
+    if (!isPremium && freeMessageUsed) return;
 
     const userMessage: Message = {
       id: Date.now().toString(),
@@ -137,6 +152,7 @@ export function CoachClient() {
       };
 
       setMessages((prev) => [...prev, coachMessage]);
+      if (!isPremium) setFreeMessageUsed(true);
     } catch (error) {
       console.error("Coach error:", error);
       const errorMessage: Message = {
@@ -166,7 +182,7 @@ export function CoachClient() {
     );
   }
 
-  if (!user || !latestScan) {
+  if (!latestScan) {
     return (
       <main className="w-full bg-bg-primary" style={{ minHeight: "calc(100vh - 80px)" }}>
         <div className="flex flex-col items-center justify-center h-full px-6 text-center">
@@ -241,6 +257,24 @@ export function CoachClient() {
         <div ref={messagesEndRef} />
       </div>
 
+      {/* Premium gate banner after 1 free message */}
+      {!isPremium && freeMessageUsed && (
+        <div className="mx-6 mb-4 rounded-xl bg-accent-green/10 border border-accent-green/30 p-4 text-center">
+          <p className="text-sm font-semibold text-text-primary mb-1">
+            Upgrade for unlimited coaching
+          </p>
+          <p className="text-xs text-text-muted mb-3">
+            You&apos;ve used your 1 free message. Premium unlocks unlimited AI coaching.
+          </p>
+          <a
+            href={latestScan ? `/results/${latestScan.id as string}` : "/scan"}
+            className="inline-block rounded-lg bg-accent-green px-5 py-2 text-sm font-bold text-black"
+          >
+            Upgrade to Premium
+          </a>
+        </div>
+      )}
+
       {/* Input Area */}
       <div className="fixed bottom-0 left-0 right-0 bg-bg-primary border-t border-white/[0.06] px-6 py-4 max-w-[480px] mx-auto w-full">
         <div className="flex gap-2">
@@ -249,13 +283,13 @@ export function CoachClient() {
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyPress={(e) => e.key === "Enter" && handleSend()}
-            placeholder="Ask your coach..."
-            className="flex-1 rounded-full bg-white/[0.06] border border-white/[0.08] px-4 py-2.5 text-sm text-white placeholder-white/30 outline-none focus:border-accent-green/50 transition-colors"
-            disabled={sendLoading}
+            placeholder={!isPremium && freeMessageUsed ? "Upgrade to send more messages" : "Ask your coach..."}
+            className="flex-1 rounded-full bg-white/[0.06] border border-white/[0.08] px-4 py-2.5 text-sm text-white placeholder-white/30 outline-none focus:border-accent-green/50 transition-colors disabled:opacity-50"
+            disabled={sendLoading || (!isPremium && freeMessageUsed)}
           />
           <button
             onClick={handleSend}
-            disabled={sendLoading || !input.trim()}
+            disabled={sendLoading || !input.trim() || (!isPremium && freeMessageUsed)}
             className="rounded-full bg-accent-green px-4 py-2.5 text-sm font-bold text-black hover:brightness-110 disabled:opacity-50 transition-all"
           >
             Send

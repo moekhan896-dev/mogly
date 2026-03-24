@@ -20,6 +20,7 @@ export function RoutineClient() {
   
   const [scan, setScan] = useState<ScanResult | null>(null);
   const [user, setUser] = useState<{ id: string } | null>(null);
+  const [isPremium, setIsPremium] = useState(false);
   const [completions, setCompletions] = useState<number[]>([]);
   const [loading, setLoading] = useState(true);
   const [todayDate] = useState(new Date().toISOString().split("T")[0]);
@@ -32,21 +33,23 @@ export function RoutineClient() {
       
       setUser(session?.user || null);
 
-      if (!session?.user) {
-        setLoading(false);
-        return;
+      let foundScan = null;
+
+      if (session?.user) {
+        const { data: scans } = await supabase
+          .from("scans")
+          .select("*")
+          .eq("user_id", session.user.id)
+          .order("created_at", { ascending: false })
+          .limit(1);
+
+        if (scans && scans.length > 0) {
+          foundScan = scans[0];
+        }
       }
 
-      // Fetch user's latest scan
-      let { data: scans } = await supabase
-        .from("scans")
-        .select("*")
-        .eq("user_id", session.user.id)
-        .order("created_at", { ascending: false })
-        .limit(1);
-
-      // Fallback: if no scans found, check localStorage for orphaned scan
-      if (!scans || scans.length === 0) {
+      // Fallback for both logged-in (no linked scan) and anonymous users
+      if (!foundScan) {
         const lastScanId = localStorage.getItem('mogly_last_scan_id');
         if (lastScanId) {
           const { data: orphanScan } = await supabase
@@ -54,31 +57,43 @@ export function RoutineClient() {
             .select('*')
             .eq('id', lastScanId)
             .single();
-          
+
           if (orphanScan) {
-            // Link it to this user
-            await supabase
-              .from('scans')
-              .update({ user_id: session.user.id })
-              .eq('id', lastScanId);
-            
-            scans = [orphanScan];
+            foundScan = orphanScan;
+            if (session?.user) {
+              await supabase
+                .from('scans')
+                .update({ user_id: session.user.id })
+                .eq('id', lastScanId);
+            }
           }
         }
       }
 
-      if (scans && scans.length > 0) {
-        setScan(scans[0]);
+      if (foundScan) {
+        setScan(foundScan);
 
-        // Fetch today's completions
-        const { data } = await supabase
-          .from("routine_completions")
-          .select("step_number")
-          .eq("user_id", session.user.id)
-          .eq("completed_date", todayDate);
+        // Check premium status
+        if (session?.user) {
+          const { data: profile } = await supabase
+            .from('profiles')
+            .select('subscription_status')
+            .eq('id', session.user.id)
+            .single();
+          setIsPremium(profile?.subscription_status === 'premium');
+        }
 
-        if (data) {
-          setCompletions(data.map((d) => d.step_number));
+        // Fetch today's completions (only for logged-in users)
+        if (session?.user) {
+          const { data } = await supabase
+            .from("routine_completions")
+            .select("step_number")
+            .eq("user_id", session.user.id)
+            .eq("completed_date", todayDate);
+
+          if (data) {
+            setCompletions(data.map((d) => d.step_number));
+          }
         }
       }
 
@@ -126,7 +141,7 @@ export function RoutineClient() {
     );
   }
 
-  if (!user || !scan) {
+  if (!scan) {
     return (
       <main className="w-full bg-bg-primary" style={{ minHeight: "calc(100vh - 80px)" }}>
         <div className="flex flex-col items-center justify-center h-full px-6 text-center">
@@ -182,10 +197,13 @@ export function RoutineClient() {
               ☀️ Morning Routine
             </h2>
             <div className="space-y-4">
-              {morningSteps.map((step) => (
+              {morningSteps.map((step, idx) => {
+                const isLocked = !isPremium && idx > 0;
+                return (
                 <div
                   key={step.step}
-                  className="rounded-xl bg-bg-card border border-white/[0.06] p-4"
+                  className="rounded-xl bg-bg-card border border-white/[0.06] p-4 relative overflow-hidden"
+                  style={isLocked ? { filter: "blur(3px)", userSelect: "none", pointerEvents: "none" } : {}}
                 >
                   <div className="flex items-start gap-3">
                     <button
@@ -217,8 +235,22 @@ export function RoutineClient() {
                     </div>
                   </div>
                 </div>
-              ))}
+                );
+              })}
             </div>
+            {/* Upgrade CTA for free users */}
+            {!isPremium && morningSteps.length > 1 && (
+              <div className="mt-4 rounded-xl bg-accent-green/10 border border-accent-green/30 p-4 text-center">
+                <p className="text-sm font-semibold text-text-primary mb-1">🔒 Unlock your full routine</p>
+                <p className="text-xs text-text-muted mb-3">Steps 2-5 are blurred. Upgrade to Premium to see all steps.</p>
+                <a
+                  href={scan ? `/results/${scan.id}` : "/scan"}
+                  className="inline-block rounded-lg bg-accent-green px-5 py-2 text-sm font-bold text-black"
+                >
+                  Upgrade to Premium
+                </a>
+              </div>
+            )}
           </section>
         )}
 
@@ -228,7 +260,7 @@ export function RoutineClient() {
             <h2 className="text-lg font-bold text-text-primary mb-4 flex items-center gap-2">
               🌙 Evening Routine
             </h2>
-            <div className="space-y-4">
+            <div className="space-y-4" style={!isPremium ? { filter: "blur(3px)", userSelect: "none", pointerEvents: "none" } : {}}>
               {eveningSteps.map((step) => (
                 <div
                   key={step.step}
