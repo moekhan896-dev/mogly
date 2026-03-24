@@ -169,6 +169,10 @@ export function ResultsClient({ scan, isPremium: initialIsPremium, history }: Pr
     }
   };
 
+  useEffect(() => {
+    document.title = `Mogly — Score: ${scan.overall_score}/100`;
+  }, [scan.overall_score]);
+
   const mainColor = getScoreColor(scan.overall_score);
   const percentile = Math.max(1, 100 - Math.floor(scan.overall_score));
 
@@ -459,13 +463,20 @@ export function ResultsClient({ scan, isPremium: initialIsPremium, history }: Pr
             </div>
 
             {/* Loss aversion section */}
-            <div className="mb-6 rounded-xl bg-red-500/5 border border-red-500/20 p-4">
-              <p className="text-sm font-semibold text-red-400 mb-2">⚠️ Without a plan, scores drop</p>
-              <p className="text-xs text-text-muted leading-relaxed">
-                Users who don&apos;t follow a personalized routine typically see their score decline 5–15 points within 90 days. Environmental damage, stress, and unaddressed conditions compound fast.
+            <div style={{ padding: "16px", borderRadius: "12px", backgroundColor: "rgba(239,68,68,0.05)", border: "1px solid rgba(239,68,68,0.1)", marginBottom: "12px" }}>
+              <p style={{ color: "#EF4444", fontSize: "12px", fontFamily: "monospace", letterSpacing: "1px", marginBottom: "8px" }}>
+                ⚠️ WITHOUT YOUR TREATMENT PLAN
               </p>
-              <p className="text-xs text-accent-green font-medium mt-2">
-                Users with a Premium plan average +18 points in 30 days.
+              <p style={{ color: "#999", fontSize: "12px", lineHeight: "1.6" }}>
+                The {scan.conditions?.length || 0} conditions we detected compound over time. Your skin age may increase 2-3 years annually without targeted intervention.
+              </p>
+            </div>
+            <div style={{ padding: "16px", borderRadius: "12px", backgroundColor: "rgba(0,229,160,0.05)", border: "1px solid rgba(0,229,160,0.1)", marginBottom: "16px" }}>
+              <p style={{ color: "#00E5A0", fontSize: "12px", fontFamily: "monospace", letterSpacing: "1px", marginBottom: "8px" }}>
+                ✅ WITH YOUR TREATMENT PLAN
+              </p>
+              <p style={{ color: "#999", fontSize: "12px", lineHeight: "1.6" }}>
+                Average improvement: 15-20 points in 30 days. Your specific conditions are highly treatable with the right routine.
               </p>
             </div>
 

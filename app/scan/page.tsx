@@ -108,6 +108,8 @@ export default function ScanPage() {
   const [lastScanId, setLastScanId] = useState<string | null>(null);
   const [isPremium, setIsPremium] = useState(false);
   const [premiumChecked, setPremiumChecked] = useState(false);
+
+  useEffect(() => { document.title = "Mogly — Scan Your Skin"; }, []);
   const [answers, setAnswers] = useState<Answers>({
     concern: "",
     ageRange: "",

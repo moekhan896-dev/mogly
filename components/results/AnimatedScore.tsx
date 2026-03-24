@@ -12,13 +12,12 @@ export function AnimatedScore({
   duration?: number;
 }) {
   const [display, setDisplay] = useState(0);
-  const [hasLanded, setHasLanded] = useState(false);
 
   useEffect(() => {
     let start: number | null = null;
     let frame: number;
-    const rngDuration = 1500; // Random number cycling for 1.5s
-    const slowdownDuration = 500; // Slow down for 0.5s
+    const rngDuration = 1500;
+    const slowdownDuration = 500;
     const totalDuration = rngDuration + slowdownDuration;
 
     const animate = (ts: number) => {
@@ -27,18 +26,13 @@ export function AnimatedScore({
       const progress = Math.min(elapsed / totalDuration, 1);
 
       if (elapsed < rngDuration) {
-        // Random number cycling phase
-        const randomNum = Math.floor(Math.random() * 100);
-        setDisplay(randomNum);
+        setDisplay(Math.floor(Math.random() * 100));
       } else {
-        // Slow-down and landing phase
         const slowdownProgress = (elapsed - rngDuration) / slowdownDuration;
-        const eased = slowdownProgress; // Linear slowdown
-        setDisplay(Math.round(eased * value + (1 - eased) * display));
+        setDisplay(Math.round(slowdownProgress * value + (1 - slowdownProgress) * (Math.random() * 30 + 50)));
 
         if (slowdownProgress >= 1) {
           setDisplay(value);
-          setHasLanded(true);
         }
       }
 
@@ -51,18 +45,52 @@ export function AnimatedScore({
     return () => cancelAnimationFrame(frame);
   }, [value, duration]);
 
+  const circumference = 2 * Math.PI * 54; // r=54 in 120×120 viewBox
+  const strokeDash = (display / 100) * circumference;
+
   return (
-    <div className="relative inline-block">
-      <span
-        className={`font-bold leading-none inline-block ${hasLanded ? "animate-sonar-ping" : ""}`}
-        style={{
-          fontSize: "clamp(72px, 12vw, 96px)",
+    <div style={{ position: "relative", width: 160, height: 160, margin: "0 auto 8px" }}>
+      <svg
+        width="160"
+        height="160"
+        viewBox="0 0 120 120"
+        style={{ position: "absolute", inset: 0 }}
+      >
+        {/* Background ring */}
+        <circle cx="60" cy="60" r="54" fill="none" stroke="#1a1a2e" strokeWidth="6" />
+        {/* Animated score ring */}
+        <circle
+          cx="60"
+          cy="60"
+          r="54"
+          fill="none"
+          stroke={color}
+          strokeWidth="6"
+          strokeLinecap="round"
+          strokeDasharray={`${strokeDash} ${circumference}`}
+          transform="rotate(-90 60 60)"
+          style={{ transition: "stroke-dasharray 0.05s linear" }}
+        />
+      </svg>
+      <div style={{
+        position: "absolute",
+        inset: 0,
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        justifyContent: "center",
+      }}>
+        <span style={{
+          fontSize: "48px",
+          fontWeight: "bold",
+          lineHeight: 1,
           color,
           textShadow: `0 0 40px ${color}4D`,
-        }}
-      >
-        {display}
-      </span>
+        }}>
+          {display}
+        </span>
+        <span style={{ fontSize: "12px", color: "#666", marginTop: "2px" }}>/100</span>
+      </div>
     </div>
   );
 }

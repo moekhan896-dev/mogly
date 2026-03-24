@@ -34,31 +34,8 @@ function CaptureInner() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
-
-  // Smooth progress animation — reaches 95% in 6 seconds while API runs
-  useEffect(() => {
-    if (!loading) return;
-    const startTime = Date.now();
-    const duration = 6000;
-    let raf: number;
-
-    const animate = () => {
-      const elapsed = Date.now() - startTime;
-      const p = Math.min((elapsed / duration) * 95, 95);
-      setProgress(p);
-      const stepIndex = Math.min(
-        Math.floor((p / 95) * LOADING_STEPS.length),
-        LOADING_STEPS.length - 1
-      );
-      setLoadingText(LOADING_STEPS[stepIndex]);
-      if (p < 95) {
-        raf = requestAnimationFrame(animate);
-      }
-    };
-
-    raf = requestAnimationFrame(animate);
-    return () => cancelAnimationFrame(raf);
-  }, [loading]);
+  const progressRef = useRef(0);
+  const progressIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   // Scan limit check — free users get 1 scan only
   useEffect(() => {
@@ -130,6 +107,21 @@ function CaptureInner() {
     setLoading(true);
     setProgress(0);
     setError(null);
+    progressRef.current = 0;
+
+    // Smooth asymptotic progress: fast start, slows near 95%, never freezes
+    const startTime = Date.now();
+    progressIntervalRef.current = setInterval(() => {
+      const elapsed = (Date.now() - startTime) / 1000;
+      const p = Math.round(95 * (1 - Math.exp(-elapsed / 5)));
+      progressRef.current = p;
+      setProgress(p);
+      const stepIndex = Math.min(
+        Math.floor((p / 95) * LOADING_STEPS.length),
+        LOADING_STEPS.length - 1
+      );
+      setLoadingText(LOADING_STEPS[stepIndex]);
+    }, 50);
 
     try {
       // Compress
@@ -199,11 +191,26 @@ function CaptureInner() {
         localStorage.setItem("mogly_last_scan_id", data.scanId);
       }
 
-      // Jump to 100% briefly then redirect
-      setProgress(100);
-      await new Promise((r) => setTimeout(r, 300));
+      // API responded — clear the asymptotic interval, then smoothly fill to 100
+      if (progressIntervalRef.current) clearInterval(progressIntervalRef.current);
+      setLoadingText("Analysis complete!");
+      await new Promise<void>((resolve) => {
+        let current = progressRef.current;
+        const finishInterval = setInterval(() => {
+          current += 2;
+          if (current >= 100) {
+            setProgress(100);
+            clearInterval(finishInterval);
+            resolve();
+          } else {
+            setProgress(current);
+          }
+        }, 20);
+      });
+      await new Promise((r) => setTimeout(r, 150));
       window.location.href = `/results/${data.scanId || 1}`;
     } catch (err) {
+      if (progressIntervalRef.current) clearInterval(progressIntervalRef.current);
       setLoading(false);
       const message = err instanceof Error ? err.message : "Unknown error";
       setError(`Failed: ${message}`);

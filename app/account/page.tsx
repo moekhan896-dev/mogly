@@ -6,6 +6,21 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase";
 import type { ScanResult } from "@/lib/scores";
 
+const DAILY_TIPS = [
+  "Apply SPF 30+ every morning — even indoors, UV rays pass through glass.",
+  "Double cleanse at night: oil cleanser first, then water-based.",
+  "Niacinamide + hyaluronic acid is one of the safest combos for all skin types.",
+  "Silk pillowcases reduce friction and can help with breakouts.",
+  "Vitamin C works best applied in the morning before SPF.",
+  "Patch test any new product for 48 hours before full use.",
+  "Retinol should be introduced slowly — start 2x per week.",
+  "Cold water to rinse keeps the skin barrier intact longer.",
+];
+
+function getDailyTip() {
+  return DAILY_TIPS[new Date().getDate() % DAILY_TIPS.length];
+}
+
 export default function AccountPage() {
   const router = useRouter();
   const supabase = createClient();
@@ -25,6 +40,10 @@ export default function AccountPage() {
   const [streak, setStreak] = useState(0);
 
   useEffect(() => {
+    document.title = "Mogly — Your Skin Dashboard";
+  }, []);
+
+  useEffect(() => {
     const checkAuth = async () => {
       const { data: { session } } = await supabase.auth.getSession();
 
@@ -32,19 +51,33 @@ export default function AccountPage() {
         setUser(session.user);
 
         const storedScanId = localStorage.getItem("mogly_last_scan_id");
-        console.log("User ID:", session.user.id);
-        console.log("localStorage scan ID:", storedScanId);
         if (storedScanId) setLastScanId(storedScanId);
 
-        // Link orphaned scan via service-role API (bypasses RLS)
+        // Link the localStorage scan to this user account
         if (storedScanId) {
-          console.log("Attempting to link scan", storedScanId, "to user", session.user.id);
-          const linkRes = await fetch("/api/link-scan", {
+          await fetch("/api/link-scan", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ scanId: storedScanId }),
           });
-          console.log("Link result status:", linkRes.status);
+        }
+
+        // Also link any other orphaned scans visible to this session
+        const { data: orphanedScans } = await supabase
+          .from("scans")
+          .select("id")
+          .is("user_id", null);
+
+        if (orphanedScans && orphanedScans.length > 0) {
+          await Promise.all(
+            orphanedScans.map((scan) =>
+              fetch("/api/link-scan", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ scanId: scan.id }),
+              })
+            )
+          );
         }
 
         const [scansRes, profileRes, streakRes] = await Promise.all([
@@ -53,22 +86,18 @@ export default function AccountPage() {
           supabase.from("user_streaks").select("current_streak").eq("user_id", session.user.id).single(),
         ]);
 
-        console.log("Scans found:", scansRes.data?.length, "Error:", scansRes.error);
-
         let foundScans = scansRes.data ?? [];
 
         // Fallback: fetch the localStorage scan directly if query returned nothing
         if (foundScans.length === 0 && storedScanId) {
-          console.log("Fallback: fetching scan directly by ID:", storedScanId);
           const { data: directScan } = await supabase.from("scans").select("*").eq("id", storedScanId).single();
           if (directScan) foundScans = [directScan];
         }
 
         setScans(foundScans);
-        if (profileRes.data) setIsPremium(profileRes.data.subscription_status === "premium");
+        if (profileRes.data) setIsPremium(profileRes.data.subscription_status === "premium" || profileRes.data.subscription_status === "active" || profileRes.data.subscription_status === "trial");
         if (streakRes.data) setStreak(streakRes.data.current_streak || 0);
       } else {
-        // Check for unsaved anonymous scan
         const storedScanId = localStorage.getItem("mogly_last_scan_id");
         if (storedScanId) { setHasUnsavedScan(true); setLastScanId(storedScanId); }
       }
@@ -124,15 +153,15 @@ export default function AccountPage() {
     return `${diff}d ago`;
   };
 
-  const memberSince = (user: { created_at?: string } | null): string => {
-    if (!user?.created_at) return "";
-    return new Date(user.created_at).toLocaleDateString("en-US", { month: "long", year: "numeric" });
+  const memberSince = (u: { created_at?: string } | null): string => {
+    if (!u?.created_at) return "";
+    return new Date(u.created_at).toLocaleDateString("en-US", { month: "long", year: "numeric" });
   };
 
-  const buildTrend = (scans: ScanResult[]): string => {
-    if (scans.length < 2) return "";
-    const recent = [...scans].reverse().slice(-5);
-    return recent.map((s) => s.overall_score).join(" → ");
+  const buildTrend = (s: ScanResult[]): string => {
+    if (s.length < 2) return "";
+    const recent = [...s].reverse().slice(-5);
+    return recent.map((r) => r.overall_score).join(" → ");
   };
 
   if (loading) {
@@ -148,7 +177,6 @@ export default function AccountPage() {
     return (
       <main className="min-h-screen bg-bg-primary px-6 py-10 pb-24">
         <div className="max-w-md mx-auto">
-          {/* Unsaved scan banner */}
           {hasUnsavedScan && (
             <div className="mb-6 rounded-xl bg-accent-green/10 border border-accent-green/30 p-4 text-center">
               <p className="text-sm font-semibold text-text-primary mb-1">You have 1 unsaved scan</p>
@@ -167,7 +195,6 @@ export default function AccountPage() {
             </p>
           </div>
 
-          {/* Google sign-in */}
           <button
             onClick={async () => {
               setError(null);
@@ -195,13 +222,11 @@ export default function AccountPage() {
               className="w-full rounded-xl bg-white/[0.06] border border-white/[0.08] px-4 py-3.5 text-white placeholder-white/30 outline-none focus:border-accent-green/50 transition-colors" />
             <input type="password" placeholder="Password (6+ characters)" value={password} onChange={(e) => setPassword(e.target.value)} required minLength={6}
               className="w-full rounded-xl bg-white/[0.06] border border-white/[0.08] px-4 py-3.5 text-white placeholder-white/30 outline-none focus:border-accent-green/50 transition-colors" />
-
             {error && (
               <div className="rounded-xl bg-red-500/10 border border-red-500/20 p-3 text-center">
                 <p className="text-sm text-red-400">{error}</p>
               </div>
             )}
-
             <button type="submit" disabled={formLoading}
               className="w-full rounded-xl bg-accent-green py-3.5 text-black font-bold text-base hover:brightness-110 disabled:opacity-50 transition-all">
               {formLoading ? "..." : mode === "signin" ? "Sign In" : "Sign Up"}
@@ -228,6 +253,7 @@ export default function AccountPage() {
   const latestScore = totalScans > 0 ? scans[0].overall_score : null;
   const prevScore = totalScans > 1 ? scans[1].overall_score : null;
   const scoreChange = latestScore !== null && prevScore !== null ? latestScore - prevScore : null;
+  const tip = getDailyTip();
 
   // ── LOGGED IN ──
   return (
@@ -265,8 +291,6 @@ export default function AccountPage() {
         {totalScans > 0 && (
           <div className="bg-bg-card rounded-2xl border border-white/[0.06] p-5 mb-6">
             <p className="text-[10px] font-mono uppercase tracking-widest text-text-muted mb-3">Your Skin Journey</p>
-
-            {/* Score trend */}
             {trend && (
               <div className="flex items-center gap-2 mb-3 flex-wrap">
                 {trend.split(" → ").map((score, i, arr) => (
@@ -284,8 +308,6 @@ export default function AccountPage() {
                 )}
               </div>
             )}
-
-            {/* Stats row */}
             <div className="flex gap-4 text-center">
               <div>
                 <p className="text-base font-bold text-text-primary">{totalScans}</p>
@@ -314,6 +336,32 @@ export default function AccountPage() {
           </div>
         )}
 
+        {/* ── Quick Actions Grid ── */}
+        <p className="text-[10px] font-mono uppercase tracking-widest text-text-muted mb-3">Quick Actions</p>
+        <div className="grid grid-cols-3 gap-3 mb-5">
+          <Link href="/scan"
+            className="flex flex-col items-center gap-2 bg-bg-card rounded-xl p-4 border border-white/[0.06] hover:border-accent-green/30 transition-colors">
+            <span className="text-2xl">📸</span>
+            <span className="text-xs font-semibold text-text-primary">New Scan</span>
+          </Link>
+          <Link href="/routine"
+            className="flex flex-col items-center gap-2 bg-bg-card rounded-xl p-4 border border-white/[0.06] hover:border-accent-green/30 transition-colors">
+            <span className="text-2xl">📋</span>
+            <span className="text-xs font-semibold text-text-primary">Routine</span>
+          </Link>
+          <Link href="/coach"
+            className="flex flex-col items-center gap-2 bg-bg-card rounded-xl p-4 border border-white/[0.06] hover:border-accent-green/30 transition-colors">
+            <span className="text-2xl">💬</span>
+            <span className="text-xs font-semibold text-text-primary">AI Coach</span>
+          </Link>
+        </div>
+
+        {/* ── Daily Tip ── */}
+        <div className="rounded-xl mb-6 p-4" style={{ backgroundColor: "rgba(0,229,160,0.05)", border: "1px solid rgba(0,229,160,0.15)" }}>
+          <p className="text-[10px] font-mono uppercase tracking-widest mb-2" style={{ color: "#00E5A0" }}>💡 Daily Tip</p>
+          <p className="text-xs text-text-muted leading-relaxed">{tip}</p>
+        </div>
+
         {/* ── Scan Library ── */}
         <div className="flex items-center justify-between mb-3">
           <h2 className="text-base font-bold text-text-primary">Scan Library</h2>
@@ -327,11 +375,9 @@ export default function AccountPage() {
             {scans.map((scan, idx) => {
               const prevScanScore = idx < scans.length - 1 ? scans[idx + 1].overall_score : null;
               const change = prevScanScore !== null ? scan.overall_score - prevScanScore : null;
-
               return (
                 <Link key={scan.id} href={`/results/${scan.id}`}
                   className="flex items-center gap-3 bg-bg-card rounded-xl p-3.5 border border-white/[0.06] hover:border-accent-green/30 transition-colors group">
-                  {/* Thumbnail */}
                   <div className="w-11 h-11 rounded-full flex-shrink-0 overflow-hidden bg-gradient-to-br from-accent-green/20 to-accent-green/5 border border-accent-green/20">
                     {scan.image_url ? (
                       <img src={scan.image_url} alt="Scan" className="w-full h-full object-cover" />
@@ -339,7 +385,6 @@ export default function AccountPage() {
                       <div className="w-full h-full flex items-center justify-center text-base">📊</div>
                     )}
                   </div>
-
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
                       <span className="text-base font-bold text-text-primary">{scan.overall_score}</span>
@@ -351,10 +396,7 @@ export default function AccountPage() {
                     </div>
                     <p className="text-xs text-text-muted">{formatDate(scan.created_at)} · {getDaysAgo(scan.created_at)}</p>
                   </div>
-
-                  <span className="text-xs text-text-muted group-hover:text-accent-green transition-colors">
-                    View →
-                  </span>
+                  <span className="text-xs text-text-muted group-hover:text-accent-green transition-colors">View →</span>
                 </Link>
               );
             })}
@@ -405,17 +447,11 @@ export default function AccountPage() {
           </div>
         )}
 
-        {/* ── Quick Actions ── */}
-        <div className="space-y-3">
-          <Link href="/scan"
-            className="flex items-center justify-center gap-2 w-full rounded-xl bg-accent-green py-3.5 text-black font-bold text-base hover:brightness-110 transition-all">
-            📸 New Scan
-          </Link>
-          <button onClick={handleSignOut}
-            className="w-full py-3 rounded-xl border border-white/[0.08] text-text-muted hover:text-text-primary hover:border-white/[0.15] transition-colors text-sm">
-            Sign Out
-          </button>
-        </div>
+        {/* ── Sign Out ── */}
+        <button onClick={handleSignOut}
+          className="w-full py-3 rounded-xl border border-white/[0.08] text-text-muted hover:text-text-primary hover:border-white/[0.15] transition-colors text-sm">
+          Sign Out
+        </button>
       </div>
     </main>
   );

@@ -7,7 +7,7 @@ export function BottomNav() {
   const pathname = usePathname();
 
   const tabs = [
-    { icon: "🏠", label: "Home", href: "/dashboard" },
+    { icon: "🏠", label: "Home", href: "/account" },
     { icon: "📸", label: "Scan", href: "/scan" },
     { icon: "📋", label: "Routine", href: "/routine" },
     { icon: "💬", label: "Coach", href: "/coach" },
@@ -19,8 +19,7 @@ export function BottomNav() {
         {tabs.map((tab) => {
           const isActive =
             pathname === tab.href ||
-            (tab.href === "/scan" && pathname.startsWith("/scan")) ||
-            (tab.href === "/dashboard" && pathname === "/dashboard");
+            (tab.href === "/scan" && pathname.startsWith("/scan"));
 
           return (
             <Link

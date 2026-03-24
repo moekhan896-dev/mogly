@@ -60,7 +60,7 @@ export function Paywall({ scanId }: { scanId: string }) {
       label: "Annual",
       price: "$99.99",
       period: "/year",
-      badge: "BEST VALUE — $8.33/mo",
+      badge: "BEST VALUE — $1.92/week",
       badgeColor: "#00E5A0",
       trial: null,
       highlighted: false,
@@ -129,9 +129,10 @@ export function Paywall({ scanId }: { scanId: string }) {
         ))}
       </div>
 
-      {/* C5: Social proof */}
-      <div className="rounded-lg bg-white/[0.02] border border-white/[0.06] px-4 py-2 text-center mt-2">
+      {/* Social proof */}
+      <div className="rounded-lg bg-white/[0.02] border border-white/[0.06] px-4 py-3 text-center mt-2 space-y-1">
         <p className="font-mono text-[10px] text-text-muted">🔬 12,847 skin analyses completed</p>
+        <p className="font-mono text-[10px] text-text-muted">⭐ Users improve an average of 18 points in 30 days</p>
       </div>
 
       {/* Pricing cards */}
