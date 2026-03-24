@@ -38,12 +38,28 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // ── Device limit checks (only for non-premium) ──
+    // ── Rate limit: max 2 scans per IP per 5 minutes ──
     const headersList = headers();
     const ip =
       headersList.get("x-forwarded-for")?.split(",")[0]?.trim() ||
       headersList.get("x-real-ip") ||
       "unknown";
+
+    const isLocalDev = ip === "::1" || ip === "127.0.0.1";
+    if (!isLocalDev) {
+      const fiveMinAgo = new Date(Date.now() - 5 * 60 * 1000).toISOString();
+      const { data: recentAttempts } = await supabase
+        .from("scan_attempts")
+        .select("id")
+        .eq("ip_address", ip)
+        .gte("created_at", fiveMinAgo);
+      if (recentAttempts && recentAttempts.length >= 2) {
+        return NextResponse.json(
+          { error: "Too many scans. Please wait a few minutes before trying again." },
+          { status: 429 }
+        );
+      }
+    }
 
     const body = await req.json();
     const { imageUrl, concern, ageRange, routineLevel, goal, fingerprint } = body;
@@ -59,7 +75,6 @@ export async function POST(req: NextRequest) {
       }
 
       // Check IP
-      const isLocalDev = ip === "::1" || ip === "127.0.0.1";
       if (!isLocalDev) {
         const { data: ipAttempts } = await supabase
           .from("scan_attempts")
