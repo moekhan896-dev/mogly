@@ -37,7 +37,8 @@ export async function POST(request: Request) {
     const { error } = await adminClient
       .from("scans")
       .update({ user_id: session.user.id })
-      .eq("id", scanId);
+      .eq("id", scanId)
+      .is("user_id", null); // Never overwrite a scan that already belongs to someone
 
     if (error) {
       console.error("link-scan error:", error);

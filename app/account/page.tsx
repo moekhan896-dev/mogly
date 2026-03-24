@@ -38,6 +38,7 @@ export default function AccountPage() {
   const [scans, setScans] = useState<ScanResult[]>([]);
   const [isPremium, setIsPremium] = useState(false);
   const [streak, setStreak] = useState(0);
+  const [showAllScans, setShowAllScans] = useState(false);
 
   useEffect(() => {
     document.title = "Mogly — Your Skin Dashboard";
@@ -60,24 +61,6 @@ export default function AccountPage() {
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ scanId: storedScanId }),
           });
-        }
-
-        // Also link any other orphaned scans visible to this session
-        const { data: orphanedScans } = await supabase
-          .from("scans")
-          .select("id")
-          .is("user_id", null);
-
-        if (orphanedScans && orphanedScans.length > 0) {
-          await Promise.all(
-            orphanedScans.map((scan) =>
-              fetch("/api/link-scan", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ scanId: scan.id }),
-              })
-            )
-          );
         }
 
         const [scansRes, profileRes, streakRes] = await Promise.all([
@@ -372,7 +355,7 @@ export default function AccountPage() {
 
         {scans.length > 0 ? (
           <div className="space-y-2.5 mb-6">
-            {scans.map((scan, idx) => {
+            {(showAllScans ? scans : scans.slice(0, 3)).map((scan, idx) => {
               const prevScanScore = idx < scans.length - 1 ? scans[idx + 1].overall_score : null;
               const change = prevScanScore !== null ? scan.overall_score - prevScanScore : null;
               return (
@@ -400,6 +383,22 @@ export default function AccountPage() {
                 </Link>
               );
             })}
+            {scans.length > 3 && !showAllScans && (
+              <button
+                onClick={() => setShowAllScans(true)}
+                style={{ width: "100%", padding: "14px", backgroundColor: "transparent", color: "#00E5A0", fontSize: "13px", fontWeight: "600", border: "1px solid rgba(0,229,160,0.2)", borderRadius: "12px", cursor: "pointer", marginTop: "8px" }}
+              >
+                View All {scans.length} Scans →
+              </button>
+            )}
+            {showAllScans && scans.length > 3 && (
+              <button
+                onClick={() => setShowAllScans(false)}
+                style={{ width: "100%", padding: "10px", backgroundColor: "transparent", color: "#666", fontSize: "12px", border: "none", cursor: "pointer", marginTop: "8px" }}
+              >
+                Show Less
+              </button>
+            )}
           </div>
         ) : (
           <div className="rounded-xl bg-bg-card border border-white/[0.06] p-8 text-center mb-6">
