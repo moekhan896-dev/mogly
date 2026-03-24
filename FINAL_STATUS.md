@@ -199,7 +199,7 @@ git push
 ### Complete User Journey
 
 ```
-1. Visit mogly.app
+1. Visit getmogly.com
    ↓
 2. Click "Analyze Your Skin"
    ↓

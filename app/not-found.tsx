@@ -17,7 +17,7 @@ export default function NotFound() {
         Get Your Mogly Score
       </Link>
       <span className="mt-12 font-mono text-[11px] text-[#333]">
-        mogly.app
+        getmogly.com
       </span>
     </main>
   );

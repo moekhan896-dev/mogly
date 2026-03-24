@@ -51,7 +51,7 @@ export function ShareButton({ data }: { data: ShareCardData }) {
         analytics.shareClicked("native_share");
         await navigator.share({
           title: `My Mogly Score: ${data.overall_score}`,
-          text: `I got a ${data.overall_score} Mogly Score! What's yours? mogly.app`,
+          text: `I got a ${data.overall_score} Mogly Score! What's yours? getmogly.com`,
           files: [file],
         });
       } else {
@@ -278,7 +278,7 @@ export function ShareButton({ data }: { data: ShareCardData }) {
                 fontWeight: 800,
               }}
             >
-              mogly.app
+              getmogly.com
             </div>
             <div
               style={{

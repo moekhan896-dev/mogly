@@ -62,10 +62,10 @@ export default function PrivacyPage() {
             <p>
               You can request deletion of all your data at any time by emailing{" "}
               <a
-                href="mailto:hello@mogly.app"
+                href="mailto:hello@getmogly.com"
                 className="text-accent-green hover:underline"
               >
-                hello@mogly.app
+                hello@getmogly.com
               </a>
               . We will delete your account, photos, and all associated data
               within 30 days.
@@ -91,10 +91,10 @@ export default function PrivacyPage() {
               We comply with GDPR and CCPA. You have the right to access,
               correct, or delete your personal data. Contact us at{" "}
               <a
-                href="mailto:hello@mogly.app"
+                href="mailto:hello@getmogly.com"
                 className="text-accent-green hover:underline"
               >
-                hello@mogly.app
+                hello@getmogly.com
               </a>{" "}
               for any privacy-related requests.
             </p>
@@ -112,17 +112,17 @@ export default function PrivacyPage() {
             <p>
               Questions about this policy? Email us at{" "}
               <a
-                href="mailto:hello@mogly.app"
+                href="mailto:hello@getmogly.com"
                 className="text-accent-green hover:underline"
               >
-                hello@mogly.app
+                hello@getmogly.com
               </a>
             </p>
           </Section>
         </div>
 
         <div className="mt-16 text-center">
-          <span className="font-mono text-[11px] text-[#333]">mogly.app</span>
+          <span className="font-mono text-[11px] text-[#333]">getmogly.com</span>
         </div>
       </div>
     </main>

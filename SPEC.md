@@ -8,7 +8,7 @@ See: ~/.openclaw/workspace/mogly/README.md for tech details.
 - Launch: Monday March 24, 2026
 - Target: $10K MRR in 30 days
 - Pricing: $9.99/week (3-day trial), $29.99/mo, $99.99/yr
-- Domain: mogly.app (needs to be purchased)
+- Domain: getmogly.com (needs to be purchased)
 - Design: Dark only, #0A0A12 bg, blush-free clinical aesthetic
 
 ## Stripe Products to Create

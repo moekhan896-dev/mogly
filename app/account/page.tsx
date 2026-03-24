@@ -181,7 +181,7 @@ export default function AccountPage() {
           <button
             onClick={async () => {
               setError(null);
-              const appUrl = process.env.NEXT_PUBLIC_APP_URL || "https://mogly.app";
+              const appUrl = process.env.NEXT_PUBLIC_APP_URL || "https://getmogly.com";
               const { error: oauthError } = await supabase.auth.signInWithOAuth({
                 provider: "google",
                 options: { redirectTo: `${appUrl}/auth/callback` },

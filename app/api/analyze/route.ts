@@ -1,36 +1,101 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
+import { createServerClient } from "@supabase/ssr";
+import { cookies, headers } from "next/headers";
 
 export async function POST(req: NextRequest) {
   try {
     const supabase = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL || '',
-      process.env.SUPABASE_SERVICE_ROLE_KEY || ''
+      process.env.NEXT_PUBLIC_SUPABASE_URL || "",
+      process.env.SUPABASE_SERVICE_ROLE_KEY || ""
     );
 
-    // Check if user is logged in
-    const authHeader = req.headers.get("authorization");
-    let userId: string | null = null;
+    // ── Auth: identify user via session cookie ──
+    const cookieStore = cookies();
+    const authClient = createServerClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      {
+        cookies: {
+          getAll() { return cookieStore.getAll(); },
+          setAll() {},
+        },
+      }
+    );
+    const { data: { session } } = await authClient.auth.getSession();
+    const userId = session?.user?.id ?? null;
 
-    if (authHeader?.startsWith("Bearer ")) {
-      const token = authHeader.slice(7);
-      const {
-        data: { user },
-      } = await supabase.auth.getUser(token);
-      if (user) {
-        userId = user.id;
+    // ── Premium check ──
+    let isPremium = false;
+    if (userId) {
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("subscription_status")
+        .eq("id", userId)
+        .single();
+      isPremium = ["premium", "active", "trial"].includes(
+        profile?.subscription_status ?? ""
+      );
+    }
+
+    // ── Device limit checks (only for non-premium) ──
+    const headersList = headers();
+    const ip =
+      headersList.get("x-forwarded-for")?.split(",")[0]?.trim() ||
+      headersList.get("x-real-ip") ||
+      "unknown";
+
+    const body = await req.json();
+    const { imageUrl, concern, ageRange, routineLevel, goal, fingerprint } = body;
+
+    if (!isPremium) {
+      // Check httpOnly cookie
+      const existingScanCookie = cookieStore.get("mogly_scanned");
+      if (existingScanCookie?.value) {
+        return NextResponse.json(
+          { error: "FREE_SCAN_USED", existingScanId: existingScanCookie.value },
+          { status: 403 }
+        );
+      }
+
+      // Check IP
+      const isLocalDev = ip === "::1" || ip === "127.0.0.1";
+      if (!isLocalDev) {
+        const { data: ipAttempts } = await supabase
+          .from("scan_attempts")
+          .select("scan_id")
+          .eq("ip_address", ip)
+          .not("scan_id", "is", null)
+          .limit(1);
+        if (ipAttempts && ipAttempts.length > 0) {
+          return NextResponse.json(
+            { error: "FREE_SCAN_USED", existingScanId: ipAttempts[0].scan_id },
+            { status: 403 }
+          );
+        }
+      }
+
+      // Check browser fingerprint
+      if (fingerprint) {
+        const { data: fpAttempts } = await supabase
+          .from("scan_attempts")
+          .select("scan_id")
+          .eq("fingerprint", fingerprint)
+          .not("scan_id", "is", null)
+          .limit(1);
+        if (fpAttempts && fpAttempts.length > 0) {
+          return NextResponse.json(
+            { error: "FREE_SCAN_USED", existingScanId: fpAttempts[0].scan_id },
+            { status: 403 }
+          );
+        }
       }
     }
 
-    const body = await req.json();
-    const { imageUrl, concern, ageRange, routineLevel, goal } = body;
     console.log("📨 Received request, imageUrl:", imageUrl);
 
     if (!imageUrl) {
-      return NextResponse.json(
-        { error: "imageUrl is required" },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: "imageUrl is required" }, { status: 400 });
     }
 
     const imageResponse = await fetch(imageUrl);
@@ -103,10 +168,7 @@ Return exactly this structure:
 
     if (!geminiRes.ok) {
       console.error("❌ Gemini error:", geminiData);
-      return NextResponse.json(
-        { error: "AI analysis failed" },
-        { status: 500 }
-      );
+      return NextResponse.json({ error: "AI analysis failed" }, { status: 500 });
     }
 
     const content = geminiData.candidates?.[0]?.content?.parts?.[0]?.text;
@@ -114,22 +176,16 @@ Return exactly this structure:
 
     if (!content) {
       console.error("❌ No content from Gemini");
-      return NextResponse.json(
-        { error: "Empty response from AI" },
-        { status: 500 }
-      );
+      return NextResponse.json({ error: "Empty response from AI" }, { status: 500 });
     }
 
     let results;
     try {
       results = JSON.parse(content);
       console.log("✅ JSON parsed");
-    } catch (e) {
+    } catch {
       console.error("❌ Parse failed:", content.substring(0, 200));
-      return NextResponse.json(
-        { error: "Invalid response format" },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: "Invalid response format" }, { status: 400 });
     }
 
     const { data, error } = await supabase
@@ -162,8 +218,28 @@ Return exactly this structure:
       throw error;
     }
 
-    console.log("✅ Saved scan ID:", data.id);
-    return NextResponse.json({ scanId: data.id, results });
+    const scanId = String(data.id);
+    console.log("✅ Saved scan ID:", scanId);
+
+    // Record scan attempt for device tracking
+    await supabase.from("scan_attempts").insert({
+      ip_address: ip,
+      scan_id: scanId,
+      fingerprint: fingerprint || "none",
+    });
+
+    // Build response with httpOnly cookie to prevent re-scanning
+    const response = NextResponse.json({ scanId: data.id, results });
+    if (!isPremium) {
+      response.cookies.set("mogly_scanned", scanId, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: "lax",
+        maxAge: 60 * 60 * 24 * 365, // 1 year
+        path: "/",
+      });
+    }
+    return response;
   } catch (error: unknown) {
     console.error("❌ Error:", error);
     const msg = error instanceof Error ? error.message : "Failed";

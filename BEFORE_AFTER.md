@@ -251,7 +251,7 @@ components/results/PremiumContent.tsx ← Context-aware buttons
 ## HAPPY PATH: Complete User Journey
 
 ```
-mogly.app
+getmogly.com
     ↓
 [Take Photo] → AI analyzes
     ↓

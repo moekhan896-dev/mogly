@@ -228,7 +228,7 @@ export function ResultsClient({ scan, isPremium: initialIsPremium, history }: Pr
             type="button"
             onClick={async () => {
               setModalError(null);
-              const appUrl = process.env.NEXT_PUBLIC_APP_URL || "https://mogly.app";
+              const appUrl = process.env.NEXT_PUBLIC_APP_URL || "https://getmogly.com";
               const { error: oauthError } = await supabase.auth.signInWithOAuth({
                 provider: "google",
                 options: { redirectTo: `${appUrl}/auth/callback` },
@@ -519,7 +519,7 @@ export function ResultsClient({ scan, isPremium: initialIsPremium, history }: Pr
 
         {/* Footer */}
         <footer className="mt-12 flex flex-col items-center gap-3 pb-8">
-          <span className="font-mono text-[11px] text-[#333]">mogly.app</span>
+          <span className="font-mono text-[11px] text-[#333]">getmogly.com</span>
         </footer>
       </div>
 

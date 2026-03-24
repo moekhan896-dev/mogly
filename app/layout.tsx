@@ -24,22 +24,22 @@ export const metadata: Metadata = {
   title: "Mogly — AI Skin Score",
   description:
     "Find out what your skin is really telling you. Free AI-powered skin analysis in 10 seconds.",
-  metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || "https://mogly.app"),
+  metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || "https://getmogly.com"),
   openGraph: {
     title: "Mogly — AI Skin Score",
     description:
       "Find out what your skin is really telling you. Free AI-powered skin analysis in 10 seconds.",
-    url: "https://mogly.app",
+    url: "https://getmogly.com",
     siteName: "Mogly",
     type: "website",
-    images: [{ url: "https://mogly.app/og-image.png", width: 1200, height: 630 }],
+    images: [{ url: "https://getmogly.com/og-image.png", width: 1200, height: 630 }],
   },
   twitter: {
     card: "summary_large_image",
     title: "Mogly — AI Skin Score",
     description:
       "Find out what your skin is really telling you. Free AI-powered skin analysis in 10 seconds.",
-    images: ["https://mogly.app/og-image.png"],
+    images: ["https://getmogly.com/og-image.png"],
   },
 };
 

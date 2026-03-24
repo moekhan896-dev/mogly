@@ -67,7 +67,7 @@ export default async function Home() {
 
         {/* Bottom watermark */}
         <span className="absolute bottom-6 font-mono text-[11px] text-[#333]">
-          mogly.app
+          getmogly.com
         </span>
       </section>
 

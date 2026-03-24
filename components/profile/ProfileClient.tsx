@@ -167,7 +167,7 @@ export function ProfileClient() {
         {/* Footer Info */}
         <div className="mt-8 rounded-xl bg-white/[0.02] border border-white/[0.06] p-4 text-center">
           <p className="text-[11px] text-text-muted">
-            Need help? Contact us at hello@mogly.app
+            Need help? Contact us at hello@getmogly.com
           </p>
         </div>
       </div>

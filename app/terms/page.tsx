@@ -68,7 +68,7 @@ export default function TermsPage() {
               </li>
               <li>
                 We offer a 7-day refund policy on your first purchase. Contact
-                hello@mogly.app for refund requests
+                hello@getmogly.com for refund requests
               </li>
             </ul>
           </Section>
@@ -118,7 +118,7 @@ export default function TermsPage() {
             <p>
               We reserve the right to suspend or terminate your account if you
               violate these terms or misuse the service. You can delete your
-              account at any time by contacting hello@mogly.app.
+              account at any time by contacting hello@getmogly.com.
             </p>
           </Section>
 
@@ -133,17 +133,17 @@ export default function TermsPage() {
             <p>
               Questions? Email us at{" "}
               <a
-                href="mailto:hello@mogly.app"
+                href="mailto:hello@getmogly.com"
                 className="text-accent-green hover:underline"
               >
-                hello@mogly.app
+                hello@getmogly.com
               </a>
             </p>
           </Section>
         </div>
 
         <div className="mt-16 text-center">
-          <span className="font-mono text-[11px] text-[#333]">mogly.app</span>
+          <span className="font-mono text-[11px] text-[#333]">getmogly.com</span>
         </div>
       </div>
     </main>
