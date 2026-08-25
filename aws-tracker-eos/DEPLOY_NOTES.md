@@ -50,7 +50,14 @@ supplied.
 2. Project Settings → API. Copy the Project URL and the **anon public** key into
    `config.js`, replacing both placeholders.
 3. Deploy this folder as a new Vercel project named `aws-tracker-eos`:
-   `cd aws-tracker-eos && vercel --prod`. Do not redeploy over an existing tracker.
+   `cd aws-tracker-eos && vercel --prod`.
+
+   **Watch the link prompt.** This repo is already connected to a Vercel project
+   called `mogly` through the GitHub integration, so `vercel` will offer to link
+   to it. Decline, and create a new project named `aws-tracker-eos`. Linking to
+   `mogly` would deploy the tracker over the app at that project's domain. If you
+   set it up from the dashboard instead, set **Root Directory** to
+   `aws-tracker-eos`, or the build will pick up the Next.js app at the repo root.
 4. Load the URL. Banner gone + green `Live` means step 2 worked. Open it in a
    second browser and change a status to confirm sync.
 
