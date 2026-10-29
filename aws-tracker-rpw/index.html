@@ -1,0 +1,866 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The Retirement Planning Window &middot; Seat Tracker</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;0,6..72,600;1,6..72,400&family=Public+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+/* Layout: masthead -> seat meter -> funnel -> sends -> segments -> lead table.
+   Palette and faces are AWS Law Firm x Pelora Advisors brand. */
+:root{
+  --paper:#F6F3ED; --surface:#FFFFFF; --raised:#FBF9F4;
+  --ink:#0E1820; --ink-soft:#3C4C58; --ink-dim:#6E7D88;
+  --brass:#9A7B45; --brass-soft:#F1E8D7; --brass-line:#DCCBA9;
+  --pine:#2F5D50; --pine-soft:#E2EDE9;
+  --amber:#9C6B16; --amber-soft:#F7ECD9;
+  --red:#A1423A; --red-soft:#F6E4E2;
+  --rule:#DFD7C7; --rule-soft:#EDE8DB;
+  --display:'Newsreader',Georgia,'Times New Roman',serif;
+  --body:'Public Sans',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+  --r:9px;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --paper:#0E1820; --surface:#16232C; --raised:#1B2932;
+  --ink:#F6F3ED; --ink-soft:#BAC4CB; --ink-dim:#8696A1;
+  --brass:#C9A968; --brass-soft:#2B2417; --brass-line:#4A3D22;
+  --pine:#64A48E; --pine-soft:#172C25;
+  --amber:#D9A24A; --amber-soft:#2E2414;
+  --red:#DB8077; --red-soft:#301D1B;
+  --rule:#26363F; --rule-soft:#1D2B34;
+  color-scheme:dark;
+}}
+:root[data-theme="dark"]{
+  --paper:#0E1820; --surface:#16232C; --raised:#1B2932;
+  --ink:#F6F3ED; --ink-soft:#BAC4CB; --ink-dim:#8696A1;
+  --brass:#C9A968; --brass-soft:#2B2417; --brass-line:#4A3D22;
+  --pine:#64A48E; --pine-soft:#172C25;
+  --amber:#D9A24A; --amber-soft:#2E2414;
+  --red:#DB8077; --red-soft:#301D1B;
+  --rule:#26363F; --rule-soft:#1D2B34;
+  color-scheme:dark;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{font-family:var(--body);background:var(--paper);color:var(--ink);
+  -webkit-font-smoothing:antialiased;font-feature-settings:"tnum" 1;
+  padding-bottom:64px;line-height:1.45}
+:focus-visible{outline:2px solid var(--brass);outline-offset:2px;border-radius:3px}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+.wrap{max-width:1240px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+
+/* masthead */
+header{border-bottom:1px solid var(--rule);background:var(--surface)}
+.mast{display:flex;flex-wrap:wrap;gap:16px;align-items:flex-end;justify-content:space-between;padding-block:18px 16px}
+.brandrow{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:8px}
+.lion{font-family:var(--display);font-weight:600;font-size:15px;letter-spacing:.02em}
+.partner{font-size:10.5px;text-transform:uppercase;letter-spacing:.13em;color:var(--ink-dim)}
+.pelora{font-family:var(--display);font-size:14px;color:var(--brass);font-weight:500}
+h1{font-family:var(--display);font-size:clamp(23px,3.4vw,31px);font-weight:500;line-height:1.14;text-wrap:balance;letter-spacing:-.008em}
+.evline{font-size:12.5px;color:var(--ink-soft);margin-top:6px}
+.evline b{font-weight:600;color:var(--ink)}
+.mastright{display:flex;flex-direction:column;align-items:flex-start;gap:8px}
+.live{display:flex;align-items:center;gap:7px;font-size:11px;text-transform:uppercase;letter-spacing:.1em;color:var(--ink-dim)}
+.dot{width:8px;height:8px;border-radius:50%;background:var(--ink-dim);flex:none}
+.dot.on{background:var(--pine);box-shadow:0 0 0 3px var(--pine-soft)}
+.dot.off{background:var(--ink-dim)}
+.count{font-family:var(--display);font-size:26px;font-weight:500;font-variant-numeric:tabular-nums;line-height:1}
+.count.soon{color:var(--amber)}
+.count.done{color:var(--ink-dim)}
+.countlab{font-size:10.5px;text-transform:uppercase;letter-spacing:.11em;color:var(--ink-dim)}
+
+/* banner */
+.banner{background:var(--brass-soft);border:1px solid var(--brass-line);border-radius:var(--r);
+  padding:11px 13px;font-size:12.5px;color:var(--ink-soft);margin-top:16px}
+.banner b{color:var(--ink)}
+.banner code{font-family:ui-monospace,Menlo,monospace;font-size:11.5px;background:var(--surface);padding:1px 5px;border-radius:4px;border:1px solid var(--rule)}
+
+/* seats */
+.seats{background:var(--surface);border:1px solid var(--rule);border-radius:var(--r);padding:16px;margin-top:18px}
+.seats-h{display:flex;flex-wrap:wrap;align-items:baseline;gap:10px 14px;margin-bottom:13px}
+.seats-lab{font-size:10.5px;text-transform:uppercase;letter-spacing:.12em;color:var(--ink-dim);line-height:1.3}
+.seats-n{font-family:var(--display);font-size:38px;font-weight:500;line-height:.9;font-variant-numeric:tabular-nums}
+.seats-of{font-size:15px;color:var(--ink-dim)}
+.seats-note{margin-left:auto;font-size:12px;color:var(--ink-soft);text-align:right}
+.slots{display:grid;grid-template-columns:repeat(20,1fr);gap:4px}
+@media(max-width:560px){.slots{grid-template-columns:repeat(10,1fr)}}
+.slot{aspect-ratio:1/1.5;border-radius:3px;background:var(--rule-soft);border:1px solid var(--rule)}
+.slot.full{background:var(--pine);border-color:var(--pine)}
+.slots-cap{display:flex;justify-content:space-between;gap:8px;font-size:10.5px;color:var(--ink-dim);margin-top:7px;flex-wrap:wrap}
+
+/* stats */
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-top:14px}
+.stat{background:var(--surface);border:1px solid var(--rule);border-radius:var(--r);padding:12px 13px}
+.stat-l{font-size:10.5px;text-transform:uppercase;letter-spacing:.1em;color:var(--ink-dim)}
+.stat-v{font-family:var(--display);font-size:25px;font-weight:500;margin-top:3px;font-variant-numeric:tabular-nums;line-height:1.1}
+.stat-s{font-size:11.5px;color:var(--ink-soft);margin-top:2px}
+
+/* sections */
+section{margin-top:26px}
+h2{font-family:var(--display);font-size:17px;font-weight:600;letter-spacing:-.004em}
+.sechead{display:flex;flex-wrap:wrap;gap:8px 12px;align-items:baseline;justify-content:space-between;margin-bottom:10px}
+.sub{font-size:12px;color:var(--ink-dim)}
+
+/* tables */
+.tbox{background:var(--surface);border:1px solid var(--rule);border-radius:var(--r);overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:12.5px;min-width:620px}
+th{text-align:left;font-size:10px;text-transform:uppercase;letter-spacing:.09em;color:var(--ink-dim);
+  font-weight:600;padding:9px 10px;border-bottom:1px solid var(--rule);white-space:nowrap;background:var(--raised)}
+td{padding:8px 10px;border-bottom:1px solid var(--rule-soft);vertical-align:middle}
+tr:last-child td{border-bottom:none}
+.num{text-align:right;font-variant-numeric:tabular-nums}
+.rate{color:var(--ink-dim);font-size:11.5px}
+input.cell{width:62px;padding:5px 6px;border:1px solid var(--rule);border-radius:5px;background:var(--paper);
+  color:var(--ink);font:inherit;font-size:12px;text-align:right;font-variant-numeric:tabular-nums}
+input.cell:focus{border-color:var(--brass);outline:none}
+.sendlab{font-weight:600}
+.senddate{color:var(--ink-dim);font-size:11.5px;white-space:nowrap}
+.sendwho{font-size:10.5px;color:var(--brass);text-transform:uppercase;letter-spacing:.07em}
+
+/* controls */
+.controls{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:11px}
+input.search{flex:1 1 210px;min-width:0;padding:8px 11px;border:1px solid var(--rule);border-radius:7px;
+  background:var(--surface);color:var(--ink);font:inherit;font-size:13px}
+input.search:focus{border-color:var(--brass);outline:none}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{padding:6px 11px;border:1px solid var(--rule);border-radius:999px;background:var(--surface);
+  color:var(--ink-soft);font:inherit;font-size:11.5px;cursor:pointer;white-space:nowrap}
+.chip:hover{border-color:var(--brass-line)}
+.chip.on{background:var(--ink);color:var(--paper);border-color:var(--ink)}
+.chip .n{opacity:.6;margin-left:4px;font-variant-numeric:tabular-nums}
+.btn{padding:7px 12px;border:1px solid var(--rule);border-radius:7px;background:var(--surface);
+  color:var(--ink);font:inherit;font-size:12px;cursor:pointer;white-space:nowrap}
+.btn:hover{border-color:var(--brass)}
+.btn.prime{background:var(--pine);color:#fff;border-color:var(--pine)}
+.btn.prime:hover{filter:brightness(1.08)}
+
+/* leads */
+.lead-name{font-weight:600;font-size:13px}
+.lead-name a{color:inherit;text-decoration:none;border-bottom:1px solid transparent}
+.lead-name a:hover{border-bottom-color:var(--brass)}
+.lead-meta{font-size:11px;color:var(--ink-dim);margin-top:1px}
+.lead-meta a{color:var(--ink-soft);text-decoration:none}
+.lead-meta a:hover{color:var(--brass)}
+.pill{display:inline-block;padding:3px 9px;border-radius:999px;font-size:11px;font-weight:600;
+  cursor:pointer;border:1px solid transparent;white-space:nowrap;user-select:none}
+.pill:hover{filter:brightness(.97)}
+.p-New{background:var(--rule-soft);color:var(--ink-soft);border-color:var(--rule)}
+.p-Contacted{background:var(--brass-soft);color:var(--brass);border-color:var(--brass-line)}
+.p-RSVP{background:var(--pine-soft);color:var(--pine);border-color:var(--pine)}
+.p-Attended{background:var(--pine);color:#fff;border-color:var(--pine)}
+.p-Noshow{background:var(--amber-soft);color:var(--amber);border-color:var(--amber)}
+.p-Declined{background:var(--red-soft);color:var(--red);border-color:var(--red)}
+.calls{display:flex;gap:3px}
+.cb{width:17px;height:17px;border:1px solid var(--rule);border-radius:3px;background:var(--paper);cursor:pointer;flex:none;padding:0}
+.cb.on{background:var(--brass);border-color:var(--brass)}
+.cb:hover{border-color:var(--brass)}
+.src{font-size:11px;color:var(--ink-dim);cursor:pointer;border-bottom:1px dotted var(--rule);user-select:none}
+.src.set{color:var(--pine);border-bottom-color:var(--pine)}
+input.note{width:100%;min-width:90px;padding:4px 7px;border:1px solid transparent;border-radius:5px;
+  background:transparent;color:var(--ink-soft);font:inherit;font-size:11.5px}
+input.note:hover{border-color:var(--rule)}
+input.note:focus{border-color:var(--brass);background:var(--paper);outline:none;color:var(--ink)}
+.held{font-size:11px;color:var(--red);font-weight:600}
+.pager{display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:space-between;margin-top:11px;font-size:12px;color:var(--ink-dim)}
+.pagebtns{display:flex;gap:6px}
+footer{margin-top:34px;padding-top:16px;border-top:1px solid var(--rule);font-size:11.5px;color:var(--ink-dim)}
+footer b{color:var(--ink-soft);font-weight:600}
+.imp{background:var(--surface);border:1px solid var(--rule);border-radius:var(--r);padding:14px;margin-top:12px}
+textarea.imp-t{width:100%;min-height:90px;padding:9px;border:1px solid var(--rule);border-radius:7px;
+  background:var(--paper);color:var(--ink);font-family:ui-monospace,Menlo,monospace;font-size:11.5px;resize:vertical}
+textarea.imp-t:focus{border-color:var(--brass);outline:none}
+.imp-msg{font-size:12px;color:var(--ink-soft);margin-top:8px}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="wrap mast">
+    <div>
+      <div class="brandrow">
+        <span class="lion">AWS Law Firm</span>
+        <span class="partner">In partnership with</span>
+        <span class="pelora">Pelora Advisors</span>
+      </div>
+      <h1>You&rsquo;ve Built It. Now What?</h1>
+      <div class="evline">
+        <b>Saturday, November 7, 2026</b> &middot; check in 9:45&thinsp;am, starts 10:00&thinsp;am
+        &middot; 2202 N Westshore Blvd, Suite 200, Tampa
+      </div>
+      <div class="evline">RSVP line <b>(813) 776-6059</b> &middot; Aaron&rsquo;s consults <b>(813) 922-5293</b></div>
+    </div>
+    <div class="mastright">
+      <div class="live"><span class="dot" id="dot"></span><span id="livetxt">Connecting</span></div>
+      <div>
+        <div class="count" id="cd">&mdash;</div>
+        <div class="countlab" id="cdlab">until doors open</div>
+      </div>
+    </div>
+  </div>
+</header>
+
+<div class="wrap">
+
+  <div class="banner" id="setup" hidden>
+    <b>Local mode.</b> Changes save in this browser only and will not sync to the team.
+    Add your Supabase URL and anon key to <code>config.js</code>, then reload.
+  </div>
+
+  <section class="seats" style="margin-top:18px">
+    <div class="seats-h">
+      <div class="seats-lab">Seats<br>reserved</div>
+      <div class="seats-n" id="claimed">0</div>
+      <div class="seats-of">/ 20</div>
+      <div class="seats-note" id="seatnote"></div>
+    </div>
+    <div class="slots" id="slots"></div>
+    <div class="slots-cap"><span>Seat 1</span><span>Room is capped at 20</span><span>Seat 20</span></div>
+  </section>
+
+  <div class="grid">
+    <div class="stat"><div class="stat-l">Client list</div><div class="stat-v" id="s-total">0</div><div class="stat-s" id="s-total-s"></div></div>
+    <div class="stat"><div class="stat-l">Contacted</div><div class="stat-v" id="s-cont">0</div><div class="stat-s" id="s-cont-s"></div></div>
+    <div class="stat"><div class="stat-l">RSVP&rsquo;d</div><div class="stat-v" id="s-rsvp">0</div><div class="stat-s" id="s-rsvp-s"></div></div>
+    <div class="stat"><div class="stat-l">Attended</div><div class="stat-v" id="s-att">0</div><div class="stat-s" id="s-att-s"></div></div>
+    <div class="stat"><div class="stat-l">No-show</div><div class="stat-v" id="s-ns">0</div><div class="stat-s">of reserved seats</div></div>
+    <div class="stat"><div class="stat-l">Declined</div><div class="stat-v" id="s-dec">0</div><div class="stat-s">asked, said no</div></div>
+  </div>
+
+  <section>
+    <div class="sechead">
+      <h2>Email performance</h2>
+      <span class="sub">Type Sent, Opens, Clicks, Replies from Mailchimp. Rates calculate. Replies are manual.</span>
+    </div>
+    <div class="tbox">
+      <table>
+        <thead><tr>
+          <th>#</th><th>Email</th><th>Send</th><th class="num">Sent</th><th class="num">Opens</th>
+          <th class="num">Open&nbsp;%</th><th class="num">Clicks</th><th class="num">Click&nbsp;%</th><th class="num">Replies</th>
+        </tr></thead>
+        <tbody id="sendrows"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <section>
+    <div class="sechead">
+      <h2>Mailchimp segments</h2>
+      <span class="sub">Email 6 goes to confirmed RSVPs only. Email 7 splits on who actually attended.</span>
+    </div>
+    <div class="controls" id="segbar"></div>
+  </section>
+
+  <section>
+    <div class="sechead">
+      <h2>Clients</h2>
+      <span class="sub">Newest intake first. Click a status to advance it. Squares log a call on each send day.</span>
+    </div>
+    <div class="controls">
+      <input class="search" id="q" type="search" placeholder="Search name, phone, email, city&hellip;" autocomplete="off">
+      <button class="btn prime" id="addbtn" type="button">Import list</button>
+      <button class="btn" id="csvbtn" type="button">Export view as CSV</button>
+    </div>
+    <div class="chips" id="chips" style="margin-bottom:11px"></div>
+    <div class="imp" id="addpanel" hidden>
+      <div style="font-family:var(--display);font-size:15px;font-weight:600;margin-bottom:4px">Load the client list</div>
+      <div style="font-size:12.5px;color:var(--ink-soft);margin-bottom:10px;max-width:68ch">
+        Export the master client list as CSV and choose the file here. Columns are matched on
+        their header names, so the master list exports straight across. The file is read in this
+        browser; the only copy that leaves it is the rows written to your own Supabase project.
+        Newest intake sorts to the top, and Deceased / Do Not Contact rows are flagged and held out.
+      </div>
+      <input type="file" id="csvfile" accept=".csv,text/csv" style="font:inherit;font-size:12.5px;max-width:100%">
+      <div style="font-size:12.5px;color:var(--ink-soft);margin:16px 0 7px">
+        Or add a few by hand &mdash; one per line, <b>Name, Phone, Email</b>:
+      </div>
+      <textarea class="imp-t" id="addtext" placeholder="Jane Whitfield, (813) 555-0142, jane@example.com
+Marcus Boyd&#9;(727) 555-0199&#9;mboyd@example.com"></textarea>
+      <div class="controls" style="margin-top:9px;margin-bottom:0">
+        <button class="btn prime" id="addgo" type="button">Add typed contacts</button>
+        <button class="btn" id="addcancel" type="button">Close</button>
+        <span class="imp-msg" id="addmsg"></span>
+      </div>
+    </div>
+    <div class="tbox">
+      <table>
+        <thead><tr>
+          <th style="min-width:190px">Client</th><th>Intake</th><th>Status</th><th>Via</th>
+          <th id="callhead">Calls</th><th style="min-width:130px">Note</th>
+        </tr></thead>
+        <tbody id="leadrows"></tbody>
+      </table>
+    </div>
+    <div class="pager">
+      <span id="pginfo"></span>
+      <span class="pagebtns">
+        <button class="btn" id="prev" type="button">Previous</button>
+        <button class="btn" id="next" type="button">Next</button>
+      </span>
+    </div>
+  </section>
+
+  <footer>
+    <b>Keep this URL internal.</b> Anyone with the link can edit, and the anon key is visible in the
+    deployed source &mdash; the accepted tradeoff for a short-lived internal tool. This board holds client
+    names, phone numbers and email addresses; it deliberately does not hold case notes or dates of birth.<br>
+    Built by Rysen Growth for AWS Law Firm. Seminar hosted with Pelora Advisors.
+  </footer>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="config.js"></script>
+<script>
+const SEED = [];
+
+/* ---------- campaign constants ---------- */
+const CAP = 20;
+const DOORS = new Date('2026-11-07T10:00:00-05:00');
+const SENDS = [
+  {n:'1',  label:'The invitation',                     date:'Tue Oct 27', who:''},
+  {n:'2',  label:'What if the market drops?',          date:'Thu Oct 29', who:''},
+  {n:'3',  label:'The tax problem in your 401(k)',     date:'Mon Nov 2',  who:''},
+  {n:'4',  label:'A plan, or just documents?',         date:'Wed Nov 4',  who:''},
+  {n:'5',  label:'Last call for Saturday',             date:'Fri Nov 6',  who:''},
+  {n:'6',  label:'See you at 10',                      date:'Sat Nov 7',  who:'RSVPs only'},
+  {n:'7A', label:'Thank you for Saturday',             date:'Mon Nov 9',  who:'Attended'},
+  {n:'7B', label:'What we covered on Saturday',        date:'Mon Nov 9',  who:'Did not attend'}
+];
+const CALLDAYS = ['10/27','10/29','11/2','11/4','11/6','11/7','11/9'];
+const STATUSES = ['New','Contacted',"RSVP'd",'Attended','No-show','Declined'];
+const SOURCES  = ['', 'Phone', 'Eventbrite'];
+const RESERVED = ["RSVP'd",'Attended','No-show'];
+const PAGE = 100;
+
+/* ---------- state ---------- */
+let leads = [], sends = [], sb = null, live = false;
+let filter = 'all', query = '', page = 0;
+
+const LS = 'aws_rpw_v1';
+function saveLocal(){ try{ localStorage.setItem(LS, JSON.stringify({leads,sends})); }catch(e){} }
+function loadLocal(){
+  try{ const d = JSON.parse(localStorage.getItem(LS)||'null');
+    if(d && d.leads && d.leads.length){ leads = d.leads; sends = d.sends||blankSends(); return true; }
+  }catch(e){}
+  return false;
+}
+function blankSends(){ return SENDS.map((s,i)=>({idx:i, sent:'', opens:'', clicks:'', replies:''})); }
+function blank(){
+  leads = SEED.slice();
+  sends = blankSends();
+}
+const isHeld = l => (l.flags||[]).includes('deceased') || (l.flags||[]).includes('dnc');
+const dbRow = l => ({id:l.id, name:l.name, phone:l.phone, email:l.email, city:l.city||'',
+  state:l.state||'', created:l.created||'', flags:l.flags||[], status:l.status||'New',
+  source:l.source||'', calls:l.calls||[], note:l.note||''});
+const fromDB = r => ({...r, phone2:'', tags:'', city:r.city||'', state:r.state||'',
+  created:r.created||'', calls:r.calls||[], note:r.note||'', source:r.source||'', flags:r.flags||[]});
+function sortByRecency(a){ a.sort((x,y) => String(y.created||'').localeCompare(String(x.created||''))); }
+
+/* ---------- supabase ---------- */
+async function initSB(){
+  const ok = typeof SUPABASE_URL === 'string' && SUPABASE_URL.indexOf('YOUR_') !== 0
+          && typeof SUPABASE_ANON_KEY === 'string' && SUPABASE_ANON_KEY.indexOf('YOUR_') !== 0;
+  if(!ok){ document.getElementById('setup').hidden = false; setLive(false,'Local only'); return false; }
+  try{
+    sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    let {data:L, error:e1} = await sb.from('leads_rpw').select('*').order('id');
+    if(e1) throw e1;
+    if(!L || !L.length){
+      setLive(false, 'Seeding…');
+      const rows = leads.map(l => ({
+        id:l.id, name:l.name, phone:l.phone, email:l.email,
+        flags:l.flags||[], status:'New', source:'', calls:[], note:''
+      }));
+      for(let i=0;i<rows.length;i+=500){
+        const {error} = await sb.from('leads_rpw').insert(rows.slice(i,i+500));
+        if(error) throw error;
+      }
+      ({data:L} = await sb.from('leads_rpw').select('*').order('id'));
+    }
+    const byId = new Map(SEED.map(s=>[s.id,s]));
+    leads = (L||[]).map(r => {
+      const s = byId.get(r.id) || {};
+      return {...s, ...r, calls:r.calls||[], note:r.note||'', source:r.source||'', flags:r.flags||s.flags||[]};
+    });
+
+    let {data:S} = await sb.from('sends_rpw').select('*').order('idx');
+    if(!S || !S.length){
+      await sb.from('sends_rpw').insert(SENDS.map((d,i)=>({idx:i})));
+      ({data:S} = await sb.from('sends_rpw').select('*').order('idx'));
+    }
+    sends = SENDS.map((d,i) => {
+      const r = (S||[]).find(x => x.idx === i) || {};
+      return {idx:i, sent:r.sent??'', opens:r.opens??'', clicks:r.clicks??'', replies:r.replies??''};
+    });
+
+    sb.channel('rpw')
+      .on('postgres_changes',{event:'*',schema:'public',table:'leads_rpw'}, p => {
+        const r = p.new; if(!r || !r.id) return;
+        const i = leads.findIndex(l => l.id === r.id);
+        if(i > -1){
+          leads[i] = {...leads[i], ...r, calls:r.calls||[], note:r.note||'', source:r.source||''};
+          render();
+        }
+      })
+      .on('postgres_changes',{event:'*',schema:'public',table:'sends_rpw'}, p => {
+        const r = p.new; if(!r) return;
+        const i = sends.findIndex(s => s.idx === r.idx);
+        if(i > -1){ sends[i] = {idx:r.idx, sent:r.sent??'', opens:r.opens??'',
+                               clicks:r.clicks??'', replies:r.replies??''}; renderSends(); }
+      }).subscribe();
+
+    setLive(true,'Live'); return true;
+  }catch(err){
+    console.error(err);
+    document.getElementById('setup').hidden = false;
+    setLive(false,'Local only'); return false;
+  }
+}
+function setLive(on, txt){
+  live = on;
+  const d = document.getElementById('dot');
+  d.className = 'dot ' + (on ? 'on' : 'off');
+  document.getElementById('livetxt').textContent = txt;
+}
+async function pushLead(l){
+  saveLocal();
+  if(!live) return;
+  try{ await sb.from('leads_rpw')
+        .update({status:l.status, source:l.source, calls:l.calls, note:l.note, updated:new Date().toISOString()})
+        .eq('id', l.id); }catch(e){ console.error(e); }
+}
+async function pushSend(s){
+  saveLocal();
+  if(!live) return;
+  const n = v => v === '' ? null : Number(v);
+  try{ await sb.from('sends_rpw').update({sent:n(s.sent), opens:n(s.opens),
+        clicks:n(s.clicks), replies:n(s.replies), updated:new Date().toISOString()}).eq('idx', s.idx); }catch(e){ console.error(e); }
+}
+async function pushNew(rows){
+  saveLocal();
+  if(!live) return;
+  try{ await sb.from('leads_rpw').insert(rows.map(dbRow)); }catch(e){ console.error(e); }
+}
+
+/* ---------- helpers ---------- */
+const esc = s => String(s??'').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const telHref = p => 'tel:+1' + String(p||'').replace(/\D/g,'');
+const pct = (a,b) => b ? Math.round(a/b*100) + '%' : '—';
+function pillClass(st){
+  return 'p-' + ({'New':'New','Contacted':'Contacted',"RSVP'd":'RSVP','Attended':'Attended',
+                  'No-show':'Noshow','Declined':'Declined'}[st] || 'New');
+}
+function fmtIntake(d){
+  if(!d) return '—';
+  const [y,m,dd] = d.split('-');
+  return ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][+m-1] + ' ' + (+dd) + ', ' + y;
+}
+
+/* ---------- countdown ---------- */
+function tickCountdown(){
+  const el = document.getElementById('cd'), lab = document.getElementById('cdlab');
+  const ms = DOORS - new Date();
+  if(ms <= 0){
+    el.textContent = 'Seminar complete';
+    el.className = 'count done';
+    el.style.fontSize = '19px';
+    lab.textContent = 'follow-up: emails 7A and 7B';
+    return;
+  }
+  const d = Math.floor(ms/86400000), h = Math.floor(ms/3600000)%24, m = Math.floor(ms/60000)%60;
+  el.textContent = d > 0 ? d + 'd ' + h + 'h ' + m + 'm' : h + 'h ' + m + 'm';
+  el.className = 'count' + (ms < 86400000 ? ' soon' : '');
+  lab.textContent = 'until doors open';
+}
+
+/* ---------- filters ---------- */
+const FILTERS = [
+  {k:'all',      t:'All'},
+  {k:'local',    t:'Tampa area'},
+  {k:'fl',       t:'Rest of Florida'},
+  {k:'away',     t:'Out of area'},
+  {k:'phone',    t:'Has phone'},
+  {k:'noemail',  t:'No email'},
+  {k:'Contacted',t:'Contacted'},
+  {k:"RSVP'd",   t:"RSVP'd"},
+  {k:'Attended', t:'Attended'},
+  {k:'No-show',  t:'No-show'},
+  {k:'Declined', t:'Declined'},
+  {k:'held',     t:'Held out'}
+];
+function matchFilter(l, k){
+  const f = l.flags || [];
+  switch(k){
+    case 'all':     return !isHeld(l);
+    case 'held':    return isHeld(l);
+    case 'local':   return !isHeld(l) && f.includes('local');
+    case 'fl':      return !isHeld(l) && f.includes('fl');
+    case 'away':    return !isHeld(l) && !f.includes('no-phone') && !f.includes('local') && !f.includes('fl');
+    case 'phone':   return !isHeld(l) && !f.includes('no-phone');
+    case 'noemail': return !isHeld(l) && f.includes('no-email');
+    default:        return !isHeld(l) && l.status === k;
+  }
+}
+function visible(){
+  const q = query.trim().toLowerCase();
+  return leads.filter(l => {
+    if(!matchFilter(l, filter)) return false;
+    if(!q) return true;
+    return (l.name+' '+l.phone+' '+(l.phone2||'')+' '+l.email+' '+(l.city||'')+' '+(l.state||'')).toLowerCase().includes(q);
+  });
+}
+
+/* ---------- render ---------- */
+function render(){ renderSeats(); renderStats(); renderChips(); renderSegments(); renderLeads(); }
+
+function renderSeats(){
+  const reserved = leads.filter(l => RESERVED.includes(l.status)).length;
+  document.getElementById('claimed').textContent = reserved;
+  document.getElementById('slots').innerHTML =
+    Array.from({length:CAP}, (_,i) => '<div class="slot' + (i < reserved ? ' full' : '') + '"></div>').join('');
+  const left = CAP - reserved;
+  document.getElementById('seatnote').textContent =
+    left > 0 ? left + (left === 1 ? ' seat still open' : ' seats still open')
+             : (reserved > CAP ? (reserved - CAP) + ' over capacity — start a waitlist' : 'Room is full');
+}
+function renderStats(){
+  const act = leads.filter(l => !isHeld(l));
+  const held = leads.length - act.length;
+  const emailable = act.filter(l => l.email).length;
+  const contacted = act.filter(l => l.status !== 'New' || (l.calls||[]).length).length;
+  const rsvp = act.filter(l => RESERVED.includes(l.status)).length;
+  const att  = act.filter(l => l.status === 'Attended').length;
+  const ns   = act.filter(l => l.status === 'No-show').length;
+  const dec  = act.filter(l => l.status === 'Declined').length;
+  const set = (id,v)=>document.getElementById(id).textContent = v;
+  set('s-total', act.length);
+  set('s-total-s', emailable + ' emailable' + (held ? ' · ' + held + ' held out' : ''));
+  set('s-cont', contacted);  set('s-cont-s', pct(contacted, act.length) + ' of list');
+  set('s-rsvp', rsvp);       set('s-rsvp-s', pct(rsvp, contacted) + ' of contacted');
+  set('s-att', att);         set('s-att-s', pct(att, rsvp) + ' of reserved');
+  set('s-ns', ns);           set('s-dec', dec);
+}
+function renderChips(){
+  document.getElementById('chips').innerHTML = FILTERS.map(f => {
+    const n = leads.filter(l => matchFilter(l, f.k)).length;
+    if(f.k === 'held' && n === 0) return '';
+    return '<button type="button" class="chip' + (filter===f.k?' on':'') + '" data-f="' + f.k + '">' +
+           esc(f.t) + '<span class="n">' + n + '</span></button>';
+  }).join('');
+  document.querySelectorAll('#chips .chip').forEach(b => b.onclick = () => {
+    filter = b.dataset.f; page = 0; render();
+  });
+}
+
+const SEGMENTS = [
+  {t:'All emailable',      f:l => !isHeld(l) && l.email},
+  {t:'Tampa area only',    f:l => !isHeld(l) && l.email && (l.flags||[]).includes('local')},
+  {t:"Email 6 · RSVP'd", f:l => !isHeld(l) && l.email && RESERVED.includes(l.status)},
+  {t:'Email 7A · attended', f:l => !isHeld(l) && l.email && l.status === 'Attended'},
+  {t:'Email 7B · did not attend', f:l => !isHeld(l) && l.email && l.status !== 'Attended'}
+];
+function renderSegments(){
+  document.getElementById('segbar').innerHTML = SEGMENTS.map((s,i) => {
+    const n = leads.filter(s.f).length;
+    return '<button type="button" class="btn" data-seg="' + i + '">' + esc(s.t) +
+           ' <span style="opacity:.55;font-variant-numeric:tabular-nums">' + n + '</span></button>';
+  }).join('') + '<span class="sub" id="segmsg"></span>';
+  document.querySelectorAll('#segbar [data-seg]').forEach(b => b.onclick = () => {
+    const s = SEGMENTS[+b.dataset.seg];
+    const rows = leads.filter(s.f);
+    downloadCSV(rows, 'rpw-' + s.t.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'') + '.csv');
+    document.getElementById('segmsg').textContent = rows.length + ' contacts exported';
+  });
+}
+
+function renderSends(){
+  document.getElementById('sendrows').innerHTML = sends.map((s,i) => {
+    const d = SENDS[i];
+    const sent = Number(s.sent)||0;
+    return '<tr>' +
+      '<td class="sendlab">' + esc(d.n) + '</td>' +
+      '<td>' + esc(d.label) + (d.who ? ' <span class="sendwho">' + esc(d.who) + '</span>' : '') + '</td>' +
+      '<td class="senddate">' + esc(d.date) + '</td>' +
+      ['sent','opens','clicks','replies'].slice(0,2).map(k =>
+        '<td class="num"><input class="cell" id="s' + i + k + '" data-i="' + i + '" data-k="' + k +
+        '" inputmode="numeric" value="' + esc(s[k]) + '"></td>').join('') +
+      '<td class="num rate">' + pct(Number(s.opens)||0, sent) + '</td>' +
+      '<td class="num"><input class="cell" id="s' + i + 'clicks" data-i="' + i + '" data-k="clicks" inputmode="numeric" value="' + esc(s.clicks) + '"></td>' +
+      '<td class="num rate">' + pct(Number(s.clicks)||0, sent) + '</td>' +
+      '<td class="num"><input class="cell" id="s' + i + 'replies" data-i="' + i + '" data-k="replies" inputmode="numeric" value="' + esc(s.replies) + '"></td>' +
+      '</tr>';
+  }).join('');
+  document.querySelectorAll('#sendrows input.cell').forEach(inp => {
+    inp.onchange = () => {
+      const s = sends[+inp.dataset.i];
+      s[inp.dataset.k] = inp.value.replace(/[^0-9]/g,'');
+      pushSend(s); renderSends();
+    };
+  });
+}
+
+function renderLeads(){
+  document.getElementById('callhead').textContent = 'Calls · ' + CALLDAYS.join(' ');
+  const vis = visible();
+  const pages = Math.max(1, Math.ceil(vis.length / PAGE));
+  if(page >= pages) page = pages - 1;
+  const slice = vis.slice(page*PAGE, page*PAGE + PAGE);
+
+  document.getElementById('leadrows').innerHTML = slice.length ? slice.map(l => {
+    const calls = l.calls || [];
+    const name = l.phone
+      ? '<a href="' + telHref(l.phone) + '">' + esc(l.name) + '</a>'
+      : esc(l.name);
+    const bits = [];
+    if(l.phone) bits.push('<a href="' + telHref(l.phone) + '">' + esc(l.phone) + '</a>');
+    if(l.email) bits.push('<a href="mailto:' + esc(l.email) + '">' + esc(l.email) + '</a>');
+    else bits.push('<span style="opacity:.6">no email</span>');
+    if(l.city) bits.push(esc(l.city));
+    return '<tr>' +
+      '<td><div class="lead-name">' + name +
+        (isHeld(l) ? ' <span class="held">' + ((l.flags||[]).includes('dnc') ? 'DO NOT CONTACT' : 'DECEASED') + '</span>' : '') +
+        '</div><div class="lead-meta">' + bits.join(' &middot; ') + '</div></td>' +
+      '<td class="senddate">' + fmtIntake(l.created) + '</td>' +
+      '<td><span class="pill ' + pillClass(l.status) + '" data-id="' + l.id + '">' + esc(l.status) + '</span></td>' +
+      '<td><span class="src' + (l.source ? ' set' : '') + '" data-src="' + l.id + '">' +
+        esc(l.source || 'set') + '</span></td>' +
+      '<td><div class="calls">' + CALLDAYS.map((d,i) =>
+        '<button type="button" class="cb' + (calls.includes(i) ? ' on' : '') + '" data-call="' + l.id +
+        '" data-day="' + i + '" title="Call on ' + d + '"></button>').join('') + '</div></td>' +
+      '<td><input class="note" id="n' + l.id + '" data-note="' + l.id + '" value="' + esc(l.note||'') + '" placeholder="—"></td>' +
+      '</tr>';
+  }).join('') : (leads.length
+      ? '<tr><td colspan="6" style="padding:22px;text-align:center;color:var(--ink-dim)">No contacts match that filter.</td></tr>'
+      : '<tr><td colspan="6" style="padding:26px;text-align:center;color:var(--ink-dim)">' +
+        'No client list loaded yet. Choose <b style="color:var(--ink)">Import list</b> above and pick your ' +
+        'master client list as a CSV.</td></tr>');
+
+  const from = vis.length ? page*PAGE + 1 : 0;
+  const to = Math.min(vis.length, page*PAGE + PAGE);
+  document.getElementById('pginfo').textContent =
+    vis.length ? from + '–' + to + ' of ' + vis.length + (pages > 1 ? ' · page ' + (page+1) + ' of ' + pages : '') : 'Nothing to show';
+  document.getElementById('prev').disabled = page === 0;
+  document.getElementById('next').disabled = page >= pages - 1;
+
+  document.querySelectorAll('#leadrows .pill').forEach(p => p.onclick = () => {
+    const l = leads.find(x => x.id === +p.dataset.id);
+    l.status = STATUSES[(STATUSES.indexOf(l.status) + 1) % STATUSES.length];
+    if(!RESERVED.includes(l.status)) l.source = '';
+    pushLead(l); render();
+  });
+  document.querySelectorAll('#leadrows .src').forEach(s => s.onclick = () => {
+    const l = leads.find(x => x.id === +s.dataset.src);
+    l.source = SOURCES[(SOURCES.indexOf(l.source || '') + 1) % SOURCES.length];
+    pushLead(l); renderLeads();
+  });
+  document.querySelectorAll('#leadrows .cb').forEach(b => b.onclick = () => {
+    const l = leads.find(x => x.id === +b.dataset.call), day = +b.dataset.day;
+    const calls = l.calls || (l.calls = []);
+    const at = calls.indexOf(day);
+    if(at > -1) calls.splice(at,1); else calls.push(day);
+    if(l.status === 'New' && calls.length) l.status = 'Contacted';
+    pushLead(l); render();
+  });
+  document.querySelectorAll('#leadrows .note').forEach(inp => inp.onchange = () => {
+    const l = leads.find(x => x.id === +inp.dataset.note);
+    l.note = inp.value; pushLead(l);
+  });
+}
+
+/* ---------- csv ---------- */
+function downloadCSV(rows, filename){
+  const head = ['Name','Phone','Email','City','State','Intake','Status','Via','Calls','Note'];
+  const q = v => '"' + String(v??'').replace(/"/g,'""') + '"';
+  const body = rows.map(l => [l.name,l.phone,l.email,l.city,l.state,l.created,l.status,l.source,
+    (l.calls||[]).map(i=>CALLDAYS[i]).join(' '),l.note].map(q).join(','));
+  const blob = new Blob([head.map(q).join(',') + '\n' + body.join('\n')], {type:'text/csv;charset=utf-8'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob); a.download = filename;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(()=>URL.revokeObjectURL(a.href), 2000);
+}
+
+/* ---------- csv import ---------- */
+const LOCAL_AC = ['813','727','863','941','352'];
+const FL_AC    = ['321','239','305','786','954','561','772','407','904','386','850'];
+
+function parseCSV(text){
+  const rows = []; let row = [], cur = '', q = false;
+  for(let i=0;i<text.length;i++){
+    const c = text[i];
+    if(q){
+      if(c === '"'){ if(text[i+1] === '"'){ cur += '"'; i++; } else q = false; }
+      else cur += c;
+    } else if(c === '"'){ q = true; }
+    else if(c === ','){ row.push(cur); cur = ''; }
+    else if(c === '\n'){ row.push(cur); rows.push(row); row = []; cur = ''; }
+    else if(c !== '\r'){ cur += c; }
+  }
+  if(cur.length || row.length){ row.push(cur); rows.push(row); }
+  return rows.filter(r => r.some(x => x && x.trim()));
+}
+function isoDate(v){
+  const t = (v||'').trim();
+  let m = /^(\d{1,2})\/(\d{1,2})\/(\d{4})/.exec(t);
+  if(m) return m[3] + '-' + String(m[1]).padStart(2,'0') + '-' + String(m[2]).padStart(2,'0');
+  m = /^(\d{4})-(\d{2})-(\d{2})/.exec(t);
+  return m ? m[0] : '';
+}
+function areaCode(p){
+  const m = /(\d{3})/.exec(String(p||'').replace(/^\s*\+?1[\s.-]*/,''));
+  return m ? m[1] : '';
+}
+function flagsFor(email, phone, tags){
+  const f = [], tl = String(tags||'').toLowerCase();
+  if(tl.includes('deceased')) f.push('deceased');
+  if(tl.includes('do not contact')) f.push('dnc');
+  if(!email) f.push('no-email');
+  if(!phone) f.push('no-phone');
+  const ac = areaCode(phone);
+  if(LOCAL_AC.includes(ac)) f.push('local');
+  else if(FL_AC.includes(ac)) f.push('fl');
+  return f;
+}
+function buildFromCSV(rows){
+  const hdr = rows[0].map(h => h.trim().toLowerCase());
+  const ix = n => hdr.indexOf(n);
+  const col = {
+    name:ix('name'), first:ix('first name'), middle:ix('middle name'), last:ix('last name'),
+    company:ix('company'), email:ix('email'), email2:ix('email 2'),
+    phone:ix('phone'), phone2:ix('phone 2'), city:ix('city'), state:ix('state'),
+    tags:ix('status / tags'), mcc:ix('mycase created'), ncc:ix('new crm created')
+  };
+  if(col.name < 0 && col.first < 0 && col.last < 0) return null;  // not a list we recognise
+  const get = (r,i) => i > -1 ? String(r[i]||'').trim() : '';
+  const out = [];
+  for(let i=1;i<rows.length;i++){
+    const r = rows[i];
+    let name = get(r,col.name);
+    if(!name) name = [get(r,col.first),get(r,col.middle),get(r,col.last)]
+      .filter(x => x && x !== '.').join(' ').replace(/\s+/g,' ').trim();
+    if(!name) name = get(r,col.company);
+    const e1 = get(r,col.email), e2 = get(r,col.email2);
+    const email = e1.includes('@') ? e1 : (e2.includes('@') ? e2 : '');
+    const p1 = get(r,col.phone), p2 = get(r,col.phone2);
+    const phone = p1 || p2;
+    if(!name && !email && !phone) continue;
+    const tags = get(r,col.tags);
+    out.push({
+      name, phone, phone2:(p2 && p2 !== phone) ? p2 : '', email,
+      city:get(r,col.city), state:get(r,col.state), tags,
+      created: isoDate(get(r,col.mcc)) || isoDate(get(r,col.ncc)),
+      flags: flagsFor(email, phone, tags),
+      status:'New', source:'', calls:[], note:''
+    });
+  }
+  sortByRecency(out);
+  out.forEach((o,i) => o.id = i + 1);
+  return out;
+}
+async function replaceAll(fresh, msg){
+  leads = fresh; page = 0; saveLocal();
+  if(live){
+    msg.textContent = 'Writing ' + fresh.length + ' contacts to Supabase\u2026';
+    try{
+      await sb.from('leads_rpw').delete().gte('id', 0);
+      for(let i=0;i<fresh.length;i+=500){
+        const {error} = await sb.from('leads_rpw').insert(fresh.slice(i,i+500).map(dbRow));
+        if(error) throw error;
+      }
+    }catch(e){
+      console.error(e);
+      msg.textContent = 'Supabase write failed: ' + (e.message || e) + ' \u2014 the list is loaded locally only.';
+      render(); return;
+    }
+  }
+  const held = fresh.filter(isHeld).length;
+  msg.textContent = 'Loaded ' + fresh.length + ' contacts' +
+    (held ? ', ' + held + ' held out (deceased / do not contact)' : '') + '.';
+  render();
+}
+
+/* ---------- add contacts ---------- */
+function parseAdd(text){
+  const out = [];
+  text.split(/\r?\n/).forEach(line => {
+    if(!line.trim()) return;
+    const parts = line.split(/\t|,(?=(?:[^"]*"[^"]*")*[^"]*$)/).map(s => s.trim().replace(/^"|"$/g,''));
+    const name = parts[0] || '';
+    if(!name) return;
+    let phone = '', email = '';
+    parts.slice(1).forEach(p => { if(p.includes('@')) email = email || p; else if(/\d/.test(p)) phone = phone || p; });
+    out.push({name, phone, email});
+  });
+  return out;
+}
+function wireAdd(){
+  const panel = document.getElementById('addpanel');
+  document.getElementById('addbtn').onclick = () => {
+    panel.hidden = !panel.hidden;
+    if(!panel.hidden) document.getElementById('addtext').focus();
+  };
+  document.getElementById('addcancel').onclick = () => { panel.hidden = true; document.getElementById('addmsg').textContent=''; };
+  document.getElementById('csvfile').onchange = ev => {
+    const file = ev.target.files && ev.target.files[0];
+    const msg = document.getElementById('addmsg');
+    if(!file) return;
+    if(leads.length && !window.confirm('Replace the ' + leads.length +
+        ' contacts already on this board with the contents of ' + file.name + '?')){
+      ev.target.value = ''; return;
+    }
+    msg.textContent = 'Reading ' + file.name + '\u2026';
+    const fr = new FileReader();
+    fr.onerror = () => { msg.textContent = 'Could not read that file.'; };
+    fr.onload = async () => {
+      let fresh = null;
+      try{ fresh = buildFromCSV(parseCSV(String(fr.result))); }
+      catch(e){ console.error(e); msg.textContent = 'Could not parse that CSV.'; return; }
+      if(fresh === null){
+        msg.textContent = 'No name column found. Export with headers (First Name / Last Name, or Name).';
+        return;
+      }
+      if(!fresh.length){ msg.textContent = 'That file had headers but no usable rows.'; return; }
+      await replaceAll(fresh, msg);
+      ev.target.value = '';
+    };
+    fr.readAsText(file);
+  };
+  document.getElementById('addgo').onclick = async () => {
+    const parsed = parseAdd(document.getElementById('addtext').value);
+    const msg = document.getElementById('addmsg');
+    if(!parsed.length){ msg.textContent = 'Nothing to add — check the format.'; return; }
+    let nextId = leads.reduce((m,l) => Math.max(m, l.id), 0) + 1;
+    const fresh = parsed.map(p => ({
+      id:nextId++, name:p.name, phone:p.phone, phone2:'', email:p.email,
+      city:'', state:'', tags:'', created:'',
+      flags:flagsFor(p.email, p.phone, ''), status:'New', source:'', calls:[], note:''
+    }));
+    leads = leads.concat(fresh);
+    await pushNew(fresh);
+    msg.textContent = 'Added ' + fresh.length + '.';
+    document.getElementById('addtext').value = '';
+    render();
+  };
+}
+
+/* ---------- boot ---------- */
+(async function(){
+  if(!loadLocal()) blank();
+  renderSends(); render();
+  tickCountdown(); setInterval(tickCountdown, 30000);
+  wireAdd();
+  document.getElementById('q').oninput = e => { query = e.target.value; page = 0; renderLeads(); };
+  document.getElementById('prev').onclick = () => { if(page>0){ page--; renderLeads(); window.scrollTo({top:document.getElementById('leadrows').offsetTop-120}); } };
+  document.getElementById('next').onclick = () => { page++; renderLeads(); window.scrollTo({top:document.getElementById('leadrows').offsetTop-120}); };
+  document.getElementById('csvbtn').onclick = () => {
+    const vis = visible();
+    downloadCSV(vis, 'rpw-view.csv');
+  };
+  await initSB();
+  renderSends(); render();
+})();
+</script>
+</body>
+</html>

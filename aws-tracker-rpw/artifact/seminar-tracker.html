@@ -1,0 +1,1191 @@
+<title>Retirement Planning Window</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;0,6..72,600;1,6..72,400&family=Public+Sans:wght@400;500;600;700&display=swap">
+<style>
+:root{
+  --paper:#F6F3ED; --card:#FFFFFF; --ink:#0E1820; --ink-2:#3C4A54; --ink-3:#6B7A85;
+  --line:#E2DCD1; --line-2:#CFC7B8;
+  --brass:#9A7B45; --brass-lt:#C9A968; --brass-wash:#F2EADA;
+  --pine:#2F5D50; --pine-wash:#E4EDE9;
+  --amber:#D9A24A; --amber-wash:#FBF0DC;
+  --red:#A8423A; --red-wash:#F8E6E3;
+  --slate-wash:#ECEFF1;
+  --shadow:0 1px 2px rgba(14,24,32,.05), 0 6px 20px rgba(14,24,32,.05);
+  --radius:12px;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --paper:#12171A; --card:#1A2024; --ink:#ECEFF1; --ink-2:#B9C2C8; --ink-3:#8A959D;
+    --line:#2A3238; --line-2:#3A444B;
+    --brass:#C9A968; --brass-lt:#9A7B45; --brass-wash:#2A2318;
+    --pine:#7FB8A5; --pine-wash:#18251F;
+    --amber:#E0B46B; --amber-wash:#2B2214;
+    --red:#D98078; --red-wash:#2B1A18;
+    --slate-wash:#232B30;
+    --shadow:0 1px 2px rgba(0,0,0,.3), 0 6px 20px rgba(0,0,0,.25);
+  }
+}
+:root[data-theme="dark"]{
+  --paper:#12171A; --card:#1A2024; --ink:#ECEFF1; --ink-2:#B9C2C8; --ink-3:#8A959D;
+  --line:#2A3238; --line-2:#3A444B;
+  --brass:#C9A968; --brass-lt:#9A7B45; --brass-wash:#2A2318;
+  --pine:#7FB8A5; --pine-wash:#18251F;
+  --amber:#E0B46B; --amber-wash:#2B2214;
+  --red:#D98078; --red-wash:#2B1A18;
+  --slate-wash:#232B30;
+}
+*{box-sizing:border-box}
+body{
+  margin:0; background:var(--paper); color:var(--ink);
+  font-family:"Public Sans",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+  font-size:15px; line-height:1.5; -webkit-text-size-adjust:100%;
+}
+.wrap{max-width:1180px; margin:0 auto; padding:28px max(16px,env(safe-area-inset-left,0px)) 64px max(16px,env(safe-area-inset-right,0px));}
+h1,h2,h3{font-family:Newsreader,Georgia,serif; font-weight:500; letter-spacing:-.01em; margin:0}
+.eyebrow{font-size:11px; font-weight:700; letter-spacing:.14em; text-transform:uppercase; color:var(--brass)}
+h1{font-size:clamp(28px,5.2vw,42px); line-height:1.1; margin:6px 0 10px}
+.sub{color:var(--ink-2); font-size:15px}
+.sub b{color:var(--ink); font-weight:600}
+
+header.top{border-bottom:1px solid var(--line); padding-bottom:22px; margin-bottom:22px}
+.topgrid{display:flex; flex-wrap:wrap; gap:22px; align-items:flex-end; justify-content:space-between}
+
+.seats{min-width:240px; flex:0 0 auto}
+.seats .row{display:flex; align-items:baseline; justify-content:space-between; gap:12px}
+.seats .big{font-family:Newsreader,serif; font-size:34px; line-height:1}
+.seats .cap{font-size:12px; color:var(--ink-3)}
+.meter{height:8px; border-radius:99px; background:var(--line); overflow:hidden; margin-top:8px; display:flex}
+.meter i{display:block; height:100%}
+.meter .r{background:var(--pine)}
+.meter .a{background:var(--brass)}
+.meter .ns{background:var(--red)}
+.legend{display:flex; gap:14px; flex-wrap:wrap; margin-top:8px; font-size:11.5px; color:var(--ink-3)}
+.legend span{display:inline-flex; align-items:center; gap:5px}
+.dot{width:8px;height:8px;border-radius:99px;display:inline-block}
+
+.bar{display:flex; flex-wrap:wrap; gap:10px; align-items:center; margin:0 0 20px}
+.pill{display:inline-flex; align-items:center; gap:7px; font-size:12.5px; font-weight:600;
+  padding:6px 11px; border-radius:99px; border:1px solid var(--line-2); background:var(--card); color:var(--ink-2)}
+.pill .dot{flex:0 0 auto}
+.pill.ok{border-color:color-mix(in srgb,var(--pine) 40%,transparent); background:var(--pine-wash); color:var(--pine)}
+.pill.warn{border-color:color-mix(in srgb,var(--amber) 45%,transparent); background:var(--amber-wash); color:var(--ink-2)}
+.pill.ro{border-color:color-mix(in srgb,var(--brass) 45%,transparent); background:var(--brass-wash); color:var(--ink-2)}
+
+.tiles{display:grid; grid-template-columns:repeat(auto-fit,minmax(132px,1fr)); gap:10px; margin-bottom:24px}
+.tile{background:var(--card); border:1px solid var(--line); border-radius:var(--radius); padding:13px 14px; box-shadow:var(--shadow)}
+.tile .k{font-size:11px; font-weight:700; letter-spacing:.08em; text-transform:uppercase; color:var(--ink-3)}
+.tile .v{font-family:Newsreader,serif; font-size:27px; line-height:1.15; margin-top:3px}
+.tile .n{font-size:11.5px; color:var(--ink-3); margin-top:1px}
+
+section{margin-bottom:30px}
+.shead{display:flex; align-items:baseline; justify-content:space-between; gap:14px; flex-wrap:wrap; margin-bottom:12px}
+.shead h2{font-size:21px}
+.shead p{margin:0; font-size:13px; color:var(--ink-3)}
+
+.card{background:var(--card); border:1px solid var(--line); border-radius:var(--radius); box-shadow:var(--shadow); overflow:hidden}
+.card.scroll{overflow-x:auto; overflow-y:visible}
+table{width:100%; border-collapse:collapse}
+table.people{table-layout:fixed; min-width:1120px}
+table.people td{overflow:hidden}
+table.people td.nm{white-space:normal; word-break:break-word}
+table.people .contact span{display:block}
+th{font-size:10.5px; font-weight:700; letter-spacing:.09em; text-transform:uppercase; color:var(--ink-3);
+  text-align:left; padding:10px 12px; border-bottom:1px solid var(--line); background:color-mix(in srgb,var(--paper) 55%,var(--card)); white-space:nowrap}
+td{padding:9px 12px; border-bottom:1px solid var(--line); vertical-align:middle; font-size:14px}
+tbody tr:last-child td{border-bottom:0}
+.num{text-align:right; font-variant-numeric:tabular-nums}
+
+input[type=text],input[type=number],input[type=search],select,textarea{
+  font:inherit; font-size:13.5px; color:var(--ink); background:var(--card);
+  border:1px solid var(--line-2); border-radius:7px; padding:5px 8px; width:100%; min-width:0;
+}
+input:focus-visible,select:focus-visible,textarea:focus-visible,button:focus-visible{
+  outline:2px solid var(--brass); outline-offset:1px
+}
+input[type=number]{text-align:right; -moz-appearance:textfield}
+input::placeholder{color:var(--ink-3)}
+select{appearance:none; padding-right:22px;
+  background-image:linear-gradient(45deg,transparent 50%,currentColor 50%),linear-gradient(135deg,currentColor 50%,transparent 50%);
+  background-position:calc(100% - 13px) 52%, calc(100% - 8px) 52%;
+  background-size:5px 5px,5px 5px; background-repeat:no-repeat; cursor:pointer}
+button{font:inherit; cursor:pointer; border-radius:8px; border:1px solid var(--line-2);
+  background:var(--card); color:var(--ink); padding:6px 12px; font-size:13px; font-weight:600}
+button:hover{border-color:var(--brass)}
+button.primary{background:var(--ink); color:var(--paper); border-color:var(--ink)}
+button.primary:hover{background:var(--brass); border-color:var(--brass); color:#fff}
+button:disabled{opacity:.45; cursor:not-allowed}
+button.tiny{padding:3px 7px; font-size:11.5px; font-weight:600}
+
+.sendrow .lab{font-family:Newsreader,serif; font-size:15.5px}
+.sendrow .who{display:inline-block; font-size:10.5px; font-weight:700; letter-spacing:.06em; text-transform:uppercase;
+  color:var(--brass); border:1px solid color-mix(in srgb,var(--brass) 40%,transparent);
+  background:var(--brass-wash); border-radius:99px; padding:1px 7px; margin-left:7px; vertical-align:1px}
+.sendrow .dt{font-size:12px; color:var(--ink-3); white-space:nowrap}
+.sendnum{font-family:Newsreader,serif; font-size:17px; color:var(--brass); width:34px}
+.rate{font-size:11.5px; color:var(--ink-3); font-variant-numeric:tabular-nums}
+
+.controls{display:flex; flex-wrap:wrap; gap:9px; align-items:center; margin-bottom:13px}
+.search{position:relative; flex:1 1 230px; max-width:340px}
+.search input{padding-left:30px}
+.search svg{position:absolute; left:9px; top:50%; transform:translateY(-50%); color:var(--ink-3)}
+.chips{display:flex; flex-wrap:wrap; gap:7px; margin-bottom:14px}
+.chip{display:inline-flex; align-items:center; gap:6px; font-size:12.5px; font-weight:600; color:var(--ink-2);
+  background:var(--card); border:1px solid var(--line-2); border-radius:99px; padding:5px 11px; cursor:pointer}
+.chip b{font-variant-numeric:tabular-nums; color:var(--ink-3); font-weight:600}
+.chip:hover{border-color:var(--brass)}
+.chip[aria-pressed=true]{background:var(--ink); border-color:var(--ink); color:var(--paper)}
+.chip[aria-pressed=true] b{color:color-mix(in srgb,var(--paper) 70%,var(--ink))}
+
+.person{font-weight:600}
+.held{text-decoration:line-through; color:var(--ink-3)}
+.tag{display:inline-block; font-size:9.5px; font-weight:700; letter-spacing:.05em; text-transform:uppercase;
+  border-radius:99px; padding:1px 6px; margin-left:6px; vertical-align:1px;
+  background:var(--slate-wash); color:var(--ink-3); border:1px solid var(--line-2)}
+.tag.bad{background:var(--red-wash); color:var(--red); border-color:color-mix(in srgb,var(--red) 35%,transparent)}
+.tag.new{background:var(--pine-wash); color:var(--pine); border-color:color-mix(in srgb,var(--pine) 35%,transparent)}
+.mono{font-variant-numeric:tabular-nums; white-space:nowrap}
+.sub-city{font-size:11.5px; color:var(--ink-3); margin-top:1px}
+.muted{color:var(--ink-3)}
+.copy{border:0; background:transparent; padding:1px 4px; color:var(--ink-3); font-size:10.5px; font-weight:600; border-radius:5px}
+.copy:hover{color:var(--brass); background:var(--brass-wash)}
+.contact{display:flex; align-items:center; gap:2px; min-width:0}
+.contact .mono{flex:0 0 auto}
+.contact .copy{flex:0 0 auto}
+.contact span{overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+.days{display:flex; gap:3px; flex-wrap:nowrap}
+.tag{white-space:nowrap}
+.day{position:relative}
+.day input{position:absolute; inset:0; opacity:0; margin:0; cursor:pointer; width:100%; height:100%}
+.day span{display:grid; place-items:center; width:22px; height:23px; font-size:10.5px; font-weight:700;
+  border:1px solid var(--line-2); border-radius:6px; color:var(--ink-3); background:var(--card); cursor:pointer;
+  font-variant-numeric:tabular-nums}
+.day input:checked + span{background:var(--pine); border-color:var(--pine); color:#fff}
+.day input:focus-visible + span{outline:2px solid var(--brass); outline-offset:1px}
+.day input:disabled + span{opacity:.4; cursor:not-allowed}
+.st-New{background:var(--slate-wash)}
+.st-Contacted{background:var(--amber-wash)}
+.st-RSVPd{background:var(--pine-wash); border-color:color-mix(in srgb,var(--pine) 45%,transparent)}
+.st-Attended{background:var(--brass-wash); border-color:color-mix(in srgb,var(--brass) 45%,transparent)}
+.st-Noshow{background:var(--red-wash)}
+.st-Declined{opacity:.72}
+
+.pager{display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; margin-top:13px; font-size:13px; color:var(--ink-3)}
+.pager .btns{display:flex; gap:7px; align-items:center}
+
+.addbox{display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:9px; padding:13px; align-items:end}
+.addbox label{display:block; font-size:10.5px; font-weight:700; letter-spacing:.08em; text-transform:uppercase; color:var(--ink-3); margin-bottom:4px}
+.addbox .act{display:flex; gap:8px}
+.note-wide{width:100%}
+
+details.help{margin-top:8px}
+details.help summary{cursor:pointer; font-size:13px; color:var(--brass); font-weight:600}
+details.help div{font-size:13.5px; color:var(--ink-2); padding:9px 0 0; max-width:66ch}
+details.help p{margin:0 0 8px}
+
+footer{border-top:1px solid var(--line); margin-top:34px; padding-top:18px; font-size:12.5px; color:var(--ink-3); max-width:72ch}
+footer p{margin:0 0 7px}
+
+.toast{position:fixed; left:50%; bottom:22px; transform:translateX(-50%) translateY(14px);
+  background:var(--ink); color:var(--paper); font-size:13px; font-weight:600;
+  padding:9px 16px; border-radius:99px; box-shadow:0 8px 28px rgba(0,0,0,.25);
+  opacity:0; pointer-events:none; transition:opacity .18s, transform .18s; z-index:9; max-width:86vw; text-align:center}
+.toast.show{opacity:1; transform:translateX(-50%) translateY(0)}
+
+.cols-wide{display:table-row-group}
+@media (max-width:900px){
+  thead.wide{display:none}
+  .card.scroll{overflow-x:visible}
+  table.people{table-layout:auto; min-width:0}
+  table.people .contact span{display:inline}
+  table.people, table.people tbody, table.people tr, table.people td{display:block; width:100%}
+  table.people tr{border-bottom:1px solid var(--line); padding:12px 13px}
+  table.people tbody tr:last-child{border-bottom:0}
+  table.people td{border:0; padding:3px 0}
+  table.people td[data-l]::before{content:attr(data-l); display:block; font-size:10px; font-weight:700;
+    letter-spacing:.08em; text-transform:uppercase; color:var(--ink-3); margin-bottom:3px}
+  .days{flex-wrap:wrap}
+  table.sends th:nth-child(4),table.sends td:nth-child(4){display:none}
+}
+</style>
+
+<div class="wrap">
+  <header class="top">
+    <div class="topgrid">
+      <div>
+        <div class="eyebrow">AWS Law Firm &middot; Seminar Campaign</div>
+        <h1>The Retirement Planning Window</h1>
+        <p class="sub"><b>Saturday, November 7, 2026</b> &middot; doors 10:00 AM &middot; Tampa<br>
+        <span class="muted">RSVP line: Ralpf &middot; 20 seats &middot; 7-email sequence</span></p>
+      </div>
+      <div class="seats">
+        <div class="row"><div><span class="big" id="seatsLeft">20</span> <span class="cap">of 20 seats open</span></div></div>
+        <div class="meter" id="meter" role="img" aria-label="Seat allocation">
+          <i class="r" style="width:0%"></i><i class="a" style="width:0%"></i><i class="ns" style="width:0%"></i>
+        </div>
+        <div class="legend">
+          <span><i class="dot" style="background:var(--pine)"></i> RSVP'd <b id="lgR">0</b></span>
+          <span><i class="dot" style="background:var(--brass)"></i> Attended <b id="lgA">0</b></span>
+          <span><i class="dot" style="background:var(--red)"></i> No-show <b id="lgN">0</b></span>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <div class="bar">
+    <span class="pill" id="conn"><i class="dot" style="background:var(--ink-3)"></i> Connecting&hellip;</span>
+    <button id="exportBtn">Export this view as CSV</button>
+    <button id="exportSeg">Export Mailchimp segments</button>
+  </div>
+
+  <div class="tiles">
+    <div class="tile"><div class="k">On the list</div><div class="v" id="tTotal">0</div><div class="n" id="tTotalN">mailable contacts</div></div>
+    <div class="tile"><div class="k">Reserved</div><div class="v" id="tRes">0</div><div class="n">seats spoken for</div></div>
+    <div class="tile"><div class="k">Contacted</div><div class="v" id="tCon">0</div><div class="n" id="tConN">at least one call logged</div></div>
+    <div class="tile"><div class="k">Calls logged</div><div class="v" id="tCalls">0</div><div class="n">across all call days</div></div>
+    <div class="tile"><div class="k">Declined</div><div class="v" id="tDec">0</div><div class="n">said no, stop calling</div></div>
+    <div class="tile"><div class="k">Held out</div><div class="v" id="tHeld">0</div><div class="n">never email or call</div></div>
+  </div>
+
+  <section>
+    <div class="shead">
+      <h2>Email sequence</h2>
+      <p>Fill in totals after each send. Rates calculate themselves.</p>
+    </div>
+    <div class="card">
+      <table class="sends">
+        <thead>
+          <tr>
+            <th></th><th>Email</th><th>Date</th><th class="num">Sent</th>
+            <th class="num">Opens</th><th class="num">Clicks</th><th class="num">Replies</th>
+          </tr>
+        </thead>
+        <tbody id="sendsBody"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <section id="setup">
+    <div class="shead">
+      <h2>The client list</h2>
+      <p id="setupSub">Load it once. Everyone who opens this link then sees it.</p>
+    </div>
+    <div class="card">
+      <div class="addbox" style="grid-template-columns:1fr auto">
+        <div>
+          <label for="csvFile">Master client list, saved as CSV</label>
+          <input type="file" id="csvFile" accept=".csv,text/csv,text/plain">
+          <div class="muted" id="impMsg" style="margin-top:7px; font-size:13px">
+            In Excel: File &rarr; Save As &rarr; CSV, then choose the file here.
+          </div>
+        </div>
+        <div class="act"><button class="primary" id="impBtn" disabled>Load the list</button></div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="shead">
+      <h2>Add someone not on the list</h2>
+      <p>Walk-ins, referrals, anyone who calls in. Saves for everyone.</p>
+    </div>
+    <div class="card">
+      <div class="addbox">
+        <div><label for="aName">Name</label><input type="text" id="aName" placeholder="First Last" autocomplete="off"></div>
+        <div><label for="aPhone">Phone</label><input type="text" id="aPhone" placeholder="(813) 555-0100" autocomplete="off"></div>
+        <div><label for="aEmail">Email</label><input type="text" id="aEmail" placeholder="name@example.com" autocomplete="off"></div>
+        <div><label for="aCity">City</label><input type="text" id="aCity" placeholder="Tampa" autocomplete="off"></div>
+        <div><label for="aStatus">Status</label><select id="aStatus"></select></div>
+        <div class="act"><button class="primary" id="addBtn">Add to tracker</button></div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="shead">
+      <h2>The list</h2>
+      <p id="listCount">&nbsp;</p>
+    </div>
+
+    <div class="controls">
+      <div class="search">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><circle cx="11" cy="11" r="7"></circle><path d="M20 20l-4-4"></path></svg>
+        <input type="search" id="q" placeholder="Search name, phone, email, city" autocomplete="off" aria-label="Search the list">
+      </div>
+      <button id="clearF" class="tiny">Clear filters</button>
+    </div>
+    <div class="chips" id="chips" role="group" aria-label="Filters"></div>
+
+    <div class="card scroll">
+      <table class="people">
+        <colgroup>
+          <col style="width:15%"><col style="width:15%"><col style="width:13.5%">
+          <col style="width:9%"><col style="width:10.5%"><col style="width:8.5%">
+          <col style="width:17%"><col style="width:11%">
+        </colgroup>
+        <thead class="wide">
+          <tr>
+            <th>Name</th><th>Phone</th><th>Email</th><th title="When their file was opened">Since</th>
+            <th>Status</th><th>How</th><th>Calls</th><th>Note</th>
+          </tr>
+        </thead>
+        <tbody id="rows"></tbody>
+      </table>
+    </div>
+    <div class="pager">
+      <div id="pageInfo">&nbsp;</div>
+      <div class="btns">
+        <button id="prev" class="tiny">&larr; Previous</button>
+        <button id="next" class="tiny">Next &rarr;</button>
+      </div>
+    </div>
+
+    <details class="help">
+      <summary>How the filters are decided</summary>
+      <div>
+        <p><b>Tampa area</b> is an 813, 727, 863, 941 or 352 phone number. <b>Rest of Florida</b> is any other Florida area code. <b>Out of area</b> is a phone number outside Florida &mdash; they get the emails, but there is no point calling them about a Saturday morning in Tampa.</p>
+        <p><b>No phone</b> is email-only, so they can never be called at all. <b>Held out</b> is deceased or do-not-contact: they are excluded from every count and every export on this page.</p>
+        <p>The list is sorted with the <b>newest clients first</b>, by the date their file was opened.</p>
+      </div>
+    </details>
+  </section>
+
+  <footer>
+    <p><b>This page is the live record.</b> Every status, call tick, note and send total you type saves to a shared database within a second, and everyone else looking at the page sees it without reloading.</p>
+    <p><b>The client list is not part of this page.</b> The page itself holds no names, numbers or addresses &mdash; it is an empty board until someone loads the CSV, and the list then lives in this tracker's own database, readable only by people you have given the link to and who are signed in. Street addresses, dates of birth and case notes are never read from the file at all.</p>
+    <p>Phone numbers and emails are shown as plain text with a copy button rather than as links, because dialling and mail links do not work reliably inside a hosted page.</p>
+    <p class="muted" id="foot2">Rysen Growth for AWS Law Firm.</p>
+  </footer>
+</div>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script>
+/* ---------- campaign constants ---------- */
+const CAP = 20;
+const SENDS = [
+  {n:'1',  label:'The invitation',                 date:'Tue Oct 27', who:''},
+  {n:'2',  label:'What if the market drops?',      date:'Thu Oct 29', who:''},
+  {n:'3',  label:'The tax problem in your 401(k)', date:'Mon Nov 2',  who:''},
+  {n:'4',  label:'A plan, or just documents?',     date:'Wed Nov 4',  who:''},
+  {n:'5',  label:'Last call for Saturday',         date:'Fri Nov 6',  who:''},
+  {n:'6',  label:'See you at 10',                  date:'Sat Nov 7',  who:'RSVPs only'},
+  {n:'7A', label:'Thank you for Saturday',         date:'Mon Nov 9',  who:'Attended'},
+  {n:'7B', label:'What we covered on Saturday',    date:'Mon Nov 9',  who:'Did not attend'}
+];
+const CALLDAYS = ['10/27','10/29','11/2','11/4','11/6','11/7','11/9'];
+const STATUSES = ['New','Contacted',"RSVP'd",'Attended','No-show','Declined'];
+const SOURCES  = ['', 'Phone', 'Eventbrite'];
+const RESERVED = ["RSVP'd",'Attended','No-show'];
+const PAGE = 100;
+
+/* The client list is NOT part of this page. It lives in the artifact's shared
+   database, loaded once from a CSV by whoever sets the tracker up, and read
+   back by everyone who opens the link.
+   Each person: k stable key, n name, p phone, e email, c city,
+   d file-opened date, f flags.
+   flags: np no phone, lo Tampa area, fl rest of Florida, ne no email,
+          x deceased, d do-not-contact */
+var ROSTER = [];
+var rosterChunks = 0;
+const CHUNK = 150;
+const LOCAL_AC = ['813','727','863','941','352'];
+const FL_AC    = ['321','239','305','786','954','561','772','407','904','386','850'];
+
+/* ---------- small helpers ---------- */
+const $ = function(s){ return document.querySelector(s); };
+const esc = function(s){ return String(s == null ? '' : s).replace(/[&<>"']/g, function(c){
+  return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c]; }); };
+const held = function(p){ return p.f.indexOf('x') > -1 || p.f.indexOf('d') > -1; };
+const stClass = function(s){ return 'st-' + String(s).replace(/[^A-Za-z]/g, ''); };
+const fmtDate = function(iso){
+  if (!iso) return '';
+  var m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso);
+  return m ? (+m[2]) + '/' + (+m[3]) + '/' + m[1] : iso;
+};
+const pct = function(a, b){ return b > 0 ? Math.round(a / b * 1000) / 10 + '%' : '—'; };
+
+var toastTimer = null;
+function toast(msg){
+  var t = $('#toast');
+  t.textContent = msg; t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(function(){ t.classList.remove('show'); }, 2200);
+}
+
+/* ---------- people: roster + walk-ins ---------- */
+/* a person is {key, n, p, e, c, d, f, walkin} ; tracking state lives in `track` */
+var WALKINS = [];                       // from db
+var people = [];                        // rebuilt when WALKINS changes
+var track = new Map();                  // key -> {s, src, c:[], note}
+
+function rebuildPeople(){
+  people = ROSTER.map(function(r){
+    return {key:r.k, n:r.n, p:r.p, e:r.e, c:r.c, d:r.d, f:r.f || [], walkin:false};
+  });
+  WALKINS.forEach(function(w){
+    people.push({key:'w' + w.id, n:w.n, p:w.p || '', e:w.e || '', c:w.c || '',
+                 d:w.d || '', f:w.f || [], walkin:true});
+  });
+  // newest client first; walk-ins carry today's date so they land on top
+  people.sort(function(a, b){
+    if (a.d === b.d) return a.n.localeCompare(b.n);
+    if (!a.d) return 1;
+    if (!b.d) return -1;
+    return a.d < b.d ? 1 : -1;
+  });
+}
+
+function st(key){
+  var t = track.get(key);
+  return {s: (t && t.s) || 'New', src: (t && t.src) || '',
+          c: (t && t.c) || [], note: (t && t.note) || ''};
+}
+
+/* ---------- filters ---------- */
+const FILTERS = [
+  {id:'all',      label:'Everyone',        test:function(p){ return !held(p); }},
+  {id:'new',      label:'Not called yet',  test:function(p){ return !held(p) && st(p.key).s === 'New'; }},
+  {id:'rsvp',     label:"RSVP'd",          test:function(p){ return st(p.key).s === "RSVP'd"; }},
+  {id:'attended', label:'Attended',        test:function(p){ return st(p.key).s === 'Attended'; }},
+  {id:'noshow',   label:'No-show',         test:function(p){ return st(p.key).s === 'No-show'; }},
+  {id:'local',    label:'Tampa area',      test:function(p){ return !held(p) && p.f.indexOf('lo') > -1; }},
+  {id:'fl',       label:'Rest of Florida', test:function(p){ return !held(p) && p.f.indexOf('fl') > -1; }},
+  {id:'away',     label:'Out of area',     test:function(p){ var f = p.f;
+                    return !held(p) && f.indexOf('np') < 0 && f.indexOf('lo') < 0 && f.indexOf('fl') < 0; }},
+  {id:'nophone',  label:'No phone',        test:function(p){ return !held(p) && p.f.indexOf('np') > -1; }},
+  {id:'noemail',  label:'No email',        test:function(p){ return !held(p) && p.f.indexOf('ne') > -1; }},
+  {id:'walkin',   label:'Added here',      test:function(p){ return p.walkin; }},
+  {id:'held',     label:'Held out',        test:function(p){ return held(p); }}
+];
+
+var filter = 'all';
+var query = '';
+var page = 0;
+
+function matchesQuery(p){
+  if (!query) return true;
+  var q = query;
+  return (p.n + ' ' + p.p + ' ' + p.e + ' ' + p.c).toLowerCase().indexOf(q) > -1
+      || p.p.replace(/\D/g, '').indexOf(q.replace(/\D/g, '')) > -1 && q.replace(/\D/g, '').length >= 3;
+}
+function view(){
+  var f = FILTERS.filter(function(x){ return x.id === filter; })[0] || FILTERS[0];
+  return people.filter(function(p){ return f.test(p) && matchesQuery(p); });
+}
+
+/* ---------- reading the client list ---------- */
+function parseCSV(text){
+  var rows = [], row = [], cur = '', q = false;
+  for (var i = 0; i < text.length; i++){
+    var c = text[i];
+    if (q){
+      if (c === '"'){ if (text[i+1] === '"'){ cur += '"'; i++; } else q = false; }
+      else cur += c;
+    } else if (c === '"'){ q = true; }
+    else if (c === ','){ row.push(cur); cur = ''; }
+    else if (c === '\n'){ row.push(cur); rows.push(row); row = []; cur = ''; }
+    else if (c !== '\r'){ cur += c; }
+  }
+  if (cur.length || row.length){ row.push(cur); rows.push(row); }
+  return rows.filter(function(r){ return r.some(function(x){ return x && x.trim(); }); });
+}
+function isoDate(v){
+  var t = (v || '').trim(), m = /^(\d{1,2})\/(\d{1,2})\/(\d{4})/.exec(t);
+  if (m) return m[3] + '-' + String(m[1]).padStart(2,'0') + '-' + String(m[2]).padStart(2,'0');
+  m = /^(\d{4})-(\d{2})-(\d{2})/.exec(t);
+  return m ? m[0] : '';
+}
+function areaCode(p){
+  var m = /(\d{3})/.exec(String(p || '').replace(/^\s*\+?1[\s.-]*/, ''));
+  return m ? m[1] : '';
+}
+function flagsFor(email, phone, tags){
+  var f = [], tl = String(tags || '').toLowerCase();
+  if (tl.indexOf('deceased') > -1) f.push('x');
+  if (tl.indexOf('do not contact') > -1) f.push('d');
+  if (!email) f.push('ne');
+  if (!phone) f.push('np');
+  var ac = areaCode(phone);
+  if (LOCAL_AC.indexOf(ac) > -1) f.push('lo');
+  else if (FL_AC.indexOf(ac) > -1) f.push('fl');
+  return f;
+}
+/* A key that survives re-importing the list, so the calls and notes already
+   logged against a person stay attached to them. */
+function keyFor(n, ph, e){
+  var str = (n + '|' + ph + '|' + e).toLowerCase(), h = 2166136261;
+  for (var i = 0; i < str.length; i++){ h ^= str.charCodeAt(i); h = Math.imul(h, 16777619); }
+  return 'p' + (h >>> 0).toString(36);
+}
+function buildFromCSV(rows){
+  var hdr = rows[0].map(function(h){ return h.trim().toLowerCase(); });
+  var ix = function(n){ return hdr.indexOf(n); };
+  var col = {
+    name:ix('name'), first:ix('first name'), middle:ix('middle name'), last:ix('last name'),
+    company:ix('company'), email:ix('email'), email2:ix('email 2'),
+    phone:ix('phone'), phone2:ix('phone 2'), city:ix('city'),
+    tags:ix('status / tags'), mcc:ix('mycase created'), ncc:ix('new crm created')
+  };
+  if (col.name < 0 && col.first < 0 && col.last < 0) return null;   // not a list we recognise
+  var get = function(r, i){ return i > -1 ? String(r[i] || '').trim() : ''; };
+  var out = [], seen = {};
+  for (var i = 1; i < rows.length; i++){
+    var r = rows[i];
+    var name = get(r, col.name);
+    if (!name) name = [get(r, col.first), get(r, col.middle), get(r, col.last)]
+      .filter(function(x){ return x && x !== '.'; }).join(' ').replace(/\s+/g, ' ').trim();
+    if (!name) name = get(r, col.company);
+    var e1 = get(r, col.email), e2 = get(r, col.email2);
+    var email = e1.indexOf('@') > -1 ? e1 : (e2.indexOf('@') > -1 ? e2 : '');
+    var p1 = get(r, col.phone), p2 = get(r, col.phone2);
+    var phone = p1 || p2;
+    if (!name && !email && !phone) continue;
+    var k = keyFor(name, phone, email);
+    if (seen[k]) { seen[k]++; k = k + '-' + seen[k]; } else seen[k] = 1;
+    out.push({
+      k:k, n:name, p:phone, e:email, c:get(r, col.city),
+      // the bulk CRM stamp is useless for recency, so the intake date wins
+      d:isoDate(get(r, col.mcc)) || isoDate(get(r, col.ncc)),
+      f:flagsFor(email, phone, get(r, col.tags))
+    });
+  }
+  out.sort(function(a, b){
+    if (a.d === b.d) return a.n.localeCompare(b.n);
+    if (!a.d) return 1;
+    if (!b.d) return -1;
+    return a.d < b.d ? 1 : -1;
+  });
+  return out;
+}
+
+/* ---------- db plumbing ---------- */
+var db = null, user = null, downloads = null;
+var canWrite = true;                    // optimistic; closed on a rejected write
+var writeQueues = new Map();            // path -> promise chain
+
+function queueWrite(path, fn){
+  var prev = writeQueues.get(path) || Promise.resolve();
+  var next = prev.then(fn, fn).catch(function(e){
+    if (e && e.code === 'invalid_argument') {
+      if (canWrite) { canWrite = false; setConn('ro'); applyWritable(); toast('This link is read-only for you.'); }
+    } else if (e && e.code === 'quota_exceeded') {
+      toast('The tracker database is full — nothing was saved.');
+    } else if (e && e.code === 'revoked') {
+      canWrite = false; setConn('revoked'); applyWritable();
+    } else {
+      toast('That change did not save. Try again.');
+    }
+  });
+  writeQueues.set(path, next);
+  return next;
+}
+
+function writeTrack(key){
+  if (!db || !canWrite) return;
+  var t = st(key);
+  queueWrite('track/' + key, function(){
+    return db.collection('track').doc(key).set({
+      s:t.s, src:t.src, c:t.c.slice(), note:t.note, u:new Date().toISOString()
+    });
+  });
+}
+function writeSend(n, body){
+  if (!db || !canWrite) return;
+  queueWrite('sends/' + n, function(){
+    return db.collection('sends').doc(n).set(body);
+  });
+}
+
+function setConn(mode){
+  var el = $('#conn');
+  el.className = 'pill';
+  if (mode === 'live') {
+    el.classList.add('ok');
+    el.innerHTML = '<i class="dot" style="background:var(--pine)"></i> Live — saving for everyone';
+  } else if (mode === 'ro') {
+    el.classList.add('ro');
+    el.innerHTML = '<i class="dot" style="background:var(--brass)"></i> Read-only — you can look, not edit';
+  } else if (mode === 'local') {
+    el.classList.add('warn');
+    el.innerHTML = '<i class="dot" style="background:var(--amber)"></i> Not signed in — nothing you type will save';
+  } else if (mode === 'revoked') {
+    el.classList.add('ro');
+    el.innerHTML = '<i class="dot" style="background:var(--brass)"></i> Access ended — reload the page';
+  } else {
+    el.innerHTML = '<i class="dot" style="background:var(--ink-3)"></i> Connecting…';
+  }
+}
+
+function applyWritable(){
+  var dis = !canWrite;
+  // data-locked marks a control disabled on its own merits (no phone number to
+  // call), which must survive this pass.
+  document.querySelectorAll('[data-edit]').forEach(function(el){
+    el.disabled = dis || el.hasAttribute('data-locked');
+  });
+  $('#addBtn').disabled = dis;
+}
+
+/* ---------- sends table ---------- */
+var sendState = new Map();              // n -> {sent, opens, clicks, replies}
+var sendEls = new Map();
+
+function renderSends(){
+  var tb = $('#sendsBody');
+  tb.textContent = '';
+  SENDS.forEach(function(s){
+    var tr = document.createElement('tr');
+    tr.className = 'sendrow';
+    tr.innerHTML =
+      '<td class="sendnum">' + esc(s.n) + '</td>' +
+      '<td><span class="lab">' + esc(s.label) + '</span>' +
+        (s.who ? '<span class="who">' + esc(s.who) + '</span>' : '') +
+        '<div class="rate" data-rate></div></td>' +
+      '<td class="dt">' + esc(s.date) + '</td>' +
+      '<td class="num"><input type="number" min="0" step="1" data-edit data-f="sent" aria-label="Sent for email ' + esc(s.n) + '"></td>' +
+      '<td class="num"><input type="number" min="0" step="1" data-edit data-f="opens" aria-label="Opens for email ' + esc(s.n) + '"></td>' +
+      '<td class="num"><input type="number" min="0" step="1" data-edit data-f="clicks" aria-label="Clicks for email ' + esc(s.n) + '"></td>' +
+      '<td class="num"><input type="number" min="0" step="1" data-edit data-f="replies" aria-label="Replies for email ' + esc(s.n) + '"></td>';
+    tb.appendChild(tr);
+
+    var els = {tr:tr, rate:tr.querySelector('[data-rate]'), f:{}};
+    ['sent','opens','clicks','replies'].forEach(function(f){
+      var inp = tr.querySelector('[data-f="' + f + '"]');
+      els.f[f] = inp;
+      var t = null;
+      inp.addEventListener('input', function(){
+        clearTimeout(t);
+        t = setTimeout(function(){
+          var cur = sendState.get(s.n) || {};
+          var body = {
+            sent: num(els.f.sent.value), opens: num(els.f.opens.value),
+            clicks: num(els.f.clicks.value), replies: num(els.f.replies.value),
+            u: new Date().toISOString()
+          };
+          sendState.set(s.n, body);
+          paintSend(s.n);
+          writeSend(s.n, body);
+        }, 500);
+      });
+    });
+    sendEls.set(s.n, els);
+  });
+}
+function num(v){ var n = parseInt(v, 10); return isFinite(n) && n >= 0 ? n : 0; }
+
+function paintSend(n){
+  var els = sendEls.get(n), d = sendState.get(n) || {};
+  if (!els) return;
+  ['sent','opens','clicks','replies'].forEach(function(f){
+    var inp = els.f[f];
+    if (inp !== document.activeElement) inp.value = d[f] ? d[f] : (d[f] === 0 ? '0' : '');
+  });
+  els.rate.textContent = d.sent
+    ? 'opened ' + pct(d.opens || 0, d.sent) + ' · clicked ' + pct(d.clicks || 0, d.sent)
+    : '';
+}
+
+/* ---------- people table ---------- */
+var rowEls = new Map();
+
+function renderRows(){
+  var v = view();
+  var pages = Math.max(1, Math.ceil(v.length / PAGE));
+  if (page > pages - 1) page = pages - 1;
+  if (page < 0) page = 0;
+  var slice = v.slice(page * PAGE, page * PAGE + PAGE);
+
+  var tb = $('#rows');
+  tb.textContent = '';
+  rowEls.clear();
+
+  if (!slice.length) {
+    var tr = document.createElement('tr');
+    tr.innerHTML = '<td colspan="8" class="muted" style="padding:22px 13px">' +
+      (people.length ? 'Nobody matches that.'
+                     : 'No list loaded yet \u2014 choose your CSV under <b>The client list</b> above.') +
+      '</td>';
+    tb.appendChild(tr);
+  }
+
+  slice.forEach(function(p){
+    var isHeld = held(p);
+    var tags = '';
+    if (p.walkin) tags += '<span class="tag new">added here</span>';
+    if (p.f.indexOf('x') > -1) tags += '<span class="tag bad">deceased</span>';
+    if (p.f.indexOf('d') > -1) tags += '<span class="tag bad">do not contact</span>';
+    if (p.f.indexOf('np') > -1) tags += '<span class="tag">no phone</span>';
+    if (p.f.indexOf('ne') > -1) tags += '<span class="tag">no email</span>';
+
+    var tr = document.createElement('tr');
+    tr.innerHTML =
+      '<td data-l="Name" class="nm"><span class="person' + (isHeld ? ' held' : '') + '">' + esc(p.n) + '</span>' + tags +
+        (p.c ? '<div class="sub-city">' + esc(p.c) + '</div>' : '') + '</td>' +
+      '<td data-l="Phone">' + contactCell(p.p, 'phone') + '</td>' +
+      '<td data-l="Email">' + contactCell(p.e, 'email') + '</td>' +
+      '<td data-l="Client since" class="mono muted">' + esc(fmtDate(p.d)) + '</td>' +
+      '<td data-l="Status"><select data-edit data-k="status" aria-label="Status for ' + esc(p.n) + '"></select></td>' +
+      '<td data-l="How they replied"><select data-edit data-k="source" aria-label="How they replied, ' + esc(p.n) + '"></select></td>' +
+      '<td data-l="Calls"><div class="days"></div></td>' +
+      '<td data-l="Note"><input type="text" class="note-wide" data-edit data-k="note" placeholder="—" aria-label="Note for ' + esc(p.n) + '"></td>';
+
+    var statusSel = tr.querySelector('[data-k="status"]');
+    STATUSES.forEach(function(s){
+      var o = document.createElement('option'); o.value = s; o.textContent = s; statusSel.appendChild(o);
+    });
+    var srcSel = tr.querySelector('[data-k="source"]');
+    SOURCES.forEach(function(s){
+      var o = document.createElement('option'); o.value = s; o.textContent = s || 'How?'; srcSel.appendChild(o);
+    });
+
+    var daysWrap = tr.querySelector('.days');
+    var dayInputs = {};
+    CALLDAYS.forEach(function(d){
+      var lab = document.createElement('label');
+      lab.className = 'day';
+      var cb = document.createElement('input');
+      cb.type = 'checkbox'; cb.setAttribute('data-edit', ''); cb.setAttribute('data-day', d);
+      cb.setAttribute('aria-label', 'Called ' + p.n + ' on ' + d);
+      if (p.f.indexOf('np') > -1) {
+        cb.disabled = true; cb.setAttribute('data-locked', ''); cb.title = 'No phone number';
+      }
+      var sp = document.createElement('span'); sp.textContent = d.replace(/^\d+\//, '');
+      sp.title = d;
+      lab.appendChild(cb); lab.appendChild(sp);
+      daysWrap.appendChild(lab);
+      dayInputs[d] = cb;
+    });
+
+    var noteInp = tr.querySelector('[data-k="note"]');
+
+    tb.appendChild(tr);
+    rowEls.set(p.key, {tr:tr, status:statusSel, source:srcSel, days:dayInputs, note:noteInp});
+
+    // wiring
+    statusSel.addEventListener('change', function(){
+      var t = st(p.key); t.s = statusSel.value;
+      track.set(p.key, t); paintRow(p.key); writeTrack(p.key); refreshCounts();
+    });
+    srcSel.addEventListener('change', function(){
+      var t = st(p.key); t.src = srcSel.value;
+      track.set(p.key, t); writeTrack(p.key);
+    });
+    Object.keys(dayInputs).forEach(function(d){
+      dayInputs[d].addEventListener('change', function(){
+        var t = st(p.key);
+        var c = t.c.slice();
+        var at = c.indexOf(d);
+        if (dayInputs[d].checked) { if (at < 0) c.push(d); }
+        else if (at > -1) c.splice(at, 1);
+        t.c = c;
+        if (t.s === 'New' && c.length) t.s = 'Contacted';
+        track.set(p.key, t); paintRow(p.key); writeTrack(p.key); refreshCounts();
+      });
+    });
+    var nt = null;
+    noteInp.addEventListener('input', function(){
+      clearTimeout(nt);
+      nt = setTimeout(function(){
+        var t = st(p.key); t.note = noteInp.value.slice(0, 400);
+        track.set(p.key, t); writeTrack(p.key);
+      }, 600);
+    });
+
+    paintRow(p.key);
+  });
+
+  applyWritable();
+
+  var total = v.length;
+  $('#pageInfo').textContent = total
+    ? 'Showing ' + (page * PAGE + 1) + '–' + Math.min(total, page * PAGE + PAGE) +
+      ' of ' + total.toLocaleString() + ' · page ' + (page + 1) + ' of ' + pages
+    : 'Nothing to show';
+  $('#prev').disabled = page <= 0;
+  $('#next').disabled = page >= pages - 1;
+  var fl = FILTERS.filter(function(x){ return x.id === filter; })[0];
+  $('#listCount').textContent = fl.label + (query ? ' matching “' + query + '”' : '') +
+    ' — ' + total.toLocaleString() + (total === 1 ? ' person' : ' people');
+}
+
+function contactCell(val, kind){
+  if (!val) return '<span class="muted">—</span>';
+  return '<span class="contact"><span title="' + esc(val) + '"' + (kind === 'phone' ? ' class="mono"' : '') + '>' + esc(val) + '</span>' +
+    '<button class="copy" data-copy="' + esc(val) + '" title="Copy">copy</button></span>';
+}
+
+function paintRow(key){
+  var e = rowEls.get(key);
+  if (!e) return;
+  var t = st(key);
+  if (e.status !== document.activeElement) e.status.value = t.s;
+  e.status.className = stClass(t.s);
+  if (e.source !== document.activeElement) e.source.value = t.src;
+  Object.keys(e.days).forEach(function(d){
+    var cb = e.days[d];
+    if (cb !== document.activeElement) cb.checked = t.c.indexOf(d) > -1;
+  });
+  if (e.note !== document.activeElement) e.note.value = t.note;
+}
+
+/* ---------- counts ---------- */
+function refreshCounts(){
+  var mailable = 0, reserved = 0, contacted = 0, calls = 0, declined = 0, heldN = 0;
+  var r = 0, a = 0, ns = 0;
+  people.forEach(function(p){
+    if (held(p)) { heldN++; return; }
+    mailable++;
+    var t = st(p.key);
+    calls += t.c.length;
+    if (t.c.length) contacted++;
+    if (t.s === "RSVP'd") { r++; reserved++; }
+    else if (t.s === 'Attended') { a++; reserved++; }
+    else if (t.s === 'No-show') { ns++; reserved++; }
+    else if (t.s === 'Declined') declined++;
+  });
+  $('#tTotal').textContent = mailable.toLocaleString();
+  $('#tRes').textContent = reserved;
+  $('#tCon').textContent = contacted.toLocaleString();
+  $('#tCalls').textContent = calls.toLocaleString();
+  $('#tDec').textContent = declined.toLocaleString();
+  $('#tHeld').textContent = heldN;
+
+  $('#seatsLeft').textContent = Math.max(0, CAP - reserved);
+  var m = $('#meter').children;
+  m[0].style.width = Math.min(100, r / CAP * 100) + '%';
+  m[1].style.width = Math.min(100, a / CAP * 100) + '%';
+  m[2].style.width = Math.min(100, ns / CAP * 100) + '%';
+  $('#lgR').textContent = r; $('#lgA').textContent = a; $('#lgN').textContent = ns;
+
+  // chip counts
+  FILTERS.forEach(function(f){
+    var el = document.querySelector('[data-chip="' + f.id + '"] b');
+    if (el) el.textContent = people.filter(f.test).length.toLocaleString();
+  });
+}
+
+/* ---------- chips / controls ---------- */
+function renderChips(){
+  var wrap = $('#chips');
+  wrap.textContent = '';
+  FILTERS.forEach(function(f){
+    var b = document.createElement('button');
+    b.className = 'chip';
+    b.setAttribute('data-chip', f.id);
+    b.setAttribute('aria-pressed', String(f.id === filter));
+    b.innerHTML = esc(f.label) + ' <b>0</b>';
+    b.addEventListener('click', function(){
+      filter = f.id; page = 0;
+      wrap.querySelectorAll('.chip').forEach(function(c){
+        c.setAttribute('aria-pressed', String(c.getAttribute('data-chip') === filter));
+      });
+      renderRows();
+    });
+    wrap.appendChild(b);
+  });
+}
+
+/* ---------- CSV ---------- */
+function csvCell(v){
+  v = String(v == null ? '' : v);
+  return /[",\r\n]/.test(v) ? '"' + v.replace(/"/g, '""') + '"' : v;
+}
+function buildCSV(list){
+  var head = ['Name','Phone','Email','City','Client since','Status','How','Calls','Call days','Note','Area','Source'];
+  var lines = [head.map(csvCell).join(',')];
+  list.forEach(function(p){
+    var t = st(p.key);
+    var area = p.f.indexOf('lo') > -1 ? 'Tampa area'
+             : p.f.indexOf('fl') > -1 ? 'Rest of Florida'
+             : p.f.indexOf('np') > -1 ? 'No phone' : 'Out of area';
+    lines.push([p.n, p.p, p.e, p.c, fmtDate(p.d), t.s, t.src, t.c.length,
+                t.c.join(' '), t.note, area, p.walkin ? 'Added here' : 'Client list']
+      .map(csvCell).join(','));
+  });
+  return lines.join('\r\n');
+}
+function save(name, text){
+  if (downloads) {
+    downloads.save({filename:name, data:text}).then(function(){
+      toast('Saved ' + name);
+    }).catch(function(){ toast('Could not save the file.'); });
+  } else {
+    // no downloads capability in this view: put it on the clipboard instead
+    if (navigator.clipboard) {
+      navigator.clipboard.writeText(text).then(function(){ toast('Copied the CSV to your clipboard.'); },
+        function(){ toast('Could not export here.'); });
+    } else { toast('Could not export here.'); }
+  }
+}
+
+/* ---------- loading the list into the shared database ---------- */
+var pendingImport = null;
+
+function setImportMsg(html){ $('#impMsg').innerHTML = html; }
+
+function wireImport(){
+  var file = $('#csvFile'), btn = $('#impBtn');
+
+  file.addEventListener('change', function(){
+    var f = file.files && file.files[0];
+    pendingImport = null; btn.disabled = true;
+    if (!f) return;
+    setImportMsg('Reading ' + esc(f.name) + '\u2026');
+    var fr = new FileReader();
+    fr.onerror = function(){ setImportMsg('Could not read that file.'); };
+    fr.onload = function(){
+      var list;
+      try { list = buildFromCSV(parseCSV(String(fr.result))); }
+      catch (err) { setImportMsg('That file could not be read as a CSV.'); return; }
+      if (!list) {
+        setImportMsg('That CSV has no <b>Name</b> (or <b>First name</b> / <b>Last name</b>) column, ' +
+                     'so there is nothing to load. Export the client sheet itself, headers included.');
+        return;
+      }
+      if (!list.length) { setImportMsg('That CSV has headers but no people in it.'); return; }
+      var heldN = list.filter(function(x){ return x.f.indexOf('x') > -1 || x.f.indexOf('d') > -1; }).length;
+      var noPh  = list.filter(function(x){ return x.f.indexOf('np') > -1; }).length;
+      var noEm  = list.filter(function(x){ return x.f.indexOf('ne') > -1; }).length;
+      pendingImport = list;
+      setImportMsg('<b>' + list.length.toLocaleString() + ' people</b> found \u00b7 ' +
+        heldN + ' held out (deceased or do-not-contact) \u00b7 ' +
+        noPh.toLocaleString() + ' with no phone \u00b7 ' + noEm.toLocaleString() + ' with no email.' +
+        (ROSTER.length ? ' <b>This replaces the ' + ROSTER.length.toLocaleString() +
+                         ' already loaded.</b> Calls and notes stay with the people they belong to.' : ''));
+      btn.disabled = !canWrite;
+      btn.textContent = ROSTER.length ? 'Replace the list' : 'Load the list';
+    };
+    fr.readAsText(f);
+  });
+
+  btn.addEventListener('click', function(){
+    if (!pendingImport || !db || !canWrite) return;
+    var list = pendingImport, n = list.length;
+    btn.disabled = true; file.disabled = true;
+    var chunks = [];
+    for (var i = 0; i < n; i += CHUNK) chunks.push(list.slice(i, i + CHUNK));
+    var hadChunks = rosterChunks;
+
+    var step = function(k){
+      if (k >= chunks.length) {
+        // drop any chunks left over from a longer previous list
+        var stale = [];
+        for (var j = chunks.length; j < hadChunks; j++) stale.push(j);
+        return stale.reduce(function(chain, j){
+          return chain.then(function(){ return db.collection('roster').doc(cid(j)).delete(); });
+        }, Promise.resolve());
+      }
+      setImportMsg('Saving\u2026 ' + Math.round(k / chunks.length * 100) + '%');
+      return db.collection('roster').doc(cid(k))
+        .set({i:k, of:chunks.length, p:chunks[k], u:new Date().toISOString()})
+        .then(function(){ return step(k + 1); });
+    };
+
+    step(0).then(function(){
+      pendingImport = null; file.value = ''; file.disabled = false;
+      setImportMsg('<b>' + n.toLocaleString() + ' people loaded.</b> Anyone with this link sees them now.');
+      btn.textContent = 'Replace the list';
+      toast(n.toLocaleString() + ' people loaded.');
+    }).catch(function(e){
+      file.disabled = false; btn.disabled = false;
+      setImportMsg(e && e.code === 'quota_exceeded'
+        ? 'The tracker database is full \u2014 the list was not saved.'
+        : (e && e.code === 'invalid_argument'
+           ? 'This link is read-only for you, so the list cannot be loaded from here.'
+           : 'The list did not finish saving. Try again.'));
+    });
+  });
+}
+function cid(k){ return 'c' + String(k).padStart(3, '0'); }
+
+/* ---------- boot ---------- */
+function wire(){
+  var aStatus = $('#aStatus');
+  STATUSES.forEach(function(s){
+    var o = document.createElement('option'); o.value = s; o.textContent = s; aStatus.appendChild(o);
+  });
+  aStatus.value = "RSVP'd";
+
+  var qt = null;
+  $('#q').addEventListener('input', function(e){
+    clearTimeout(qt);
+    var v = e.target.value.trim().toLowerCase();
+    qt = setTimeout(function(){ query = v; page = 0; renderRows(); }, 180);
+  });
+  $('#clearF').addEventListener('click', function(){
+    filter = 'all'; query = ''; page = 0; $('#q').value = '';
+    document.querySelectorAll('.chip').forEach(function(c){
+      c.setAttribute('aria-pressed', String(c.getAttribute('data-chip') === 'all'));
+    });
+    renderRows();
+  });
+  $('#prev').addEventListener('click', function(){ page--; renderRows(); window.scrollTo({top:$('#rows').getBoundingClientRect().top + window.scrollY - 90, behavior:'smooth'}); });
+  $('#next').addEventListener('click', function(){ page++; renderRows(); window.scrollTo({top:$('#rows').getBoundingClientRect().top + window.scrollY - 90, behavior:'smooth'}); });
+
+  document.addEventListener('click', function(e){
+    var b = e.target.closest ? e.target.closest('[data-copy]') : null;
+    if (!b) return;
+    var v = b.getAttribute('data-copy');
+    if (navigator.clipboard) {
+      navigator.clipboard.writeText(v).then(function(){ toast('Copied ' + v); },
+        function(){ toast('Copy blocked — select the text instead.'); });
+    } else { toast('Copy blocked — select the text instead.'); }
+  });
+
+  $('#exportBtn').addEventListener('click', function(){
+    var v = view();
+    var fl = FILTERS.filter(function(x){ return x.id === filter; })[0];
+    save('aws-seminar-' + fl.id + '.csv', buildCSV(v));
+  });
+  $('#exportSeg').addEventListener('click', function(){
+    var segs = [
+      {id:'emails-1-to-5', test:function(p){ return !held(p) && p.f.indexOf('ne') < 0; }},
+      {id:'email-6-rsvps', test:function(p){ return !held(p) && p.f.indexOf('ne') < 0 && st(p.key).s === "RSVP'd"; }},
+      {id:'email-7a-attended', test:function(p){ return !held(p) && p.f.indexOf('ne') < 0 && st(p.key).s === 'Attended'; }},
+      {id:'email-7b-did-not-attend', test:function(p){ return !held(p) && p.f.indexOf('ne') < 0 &&
+          (st(p.key).s === 'No-show' || st(p.key).s === "RSVP'd"); }}
+    ];
+    var parts = segs.map(function(sg){
+      var list = people.filter(sg.test);
+      return '# ' + sg.id + ' (' + list.length + ')\r\n' + buildCSV(list);
+    });
+    save('aws-seminar-segments.csv', parts.join('\r\n\r\n'));
+  });
+
+  $('#addBtn').addEventListener('click', function(){
+    var n = $('#aName').value.trim();
+    if (!n) { toast('A name is the one thing it needs.'); $('#aName').focus(); return; }
+    if (!db || !canWrite) { toast('Cannot save from this view.'); return; }
+    var phone = $('#aPhone').value.trim();
+    var email = $('#aEmail').value.trim();
+    var f = [];
+    if (!phone) f.push('np');
+    if (!email) f.push('ne');
+    var digits = phone.replace(/\D/g, '');
+    var ac = digits.length === 11 && digits.charAt(0) === '1' ? digits.substr(1, 3)
+           : digits.length === 10 ? digits.substr(0, 3) : '';
+    if (['813','727','863','941','352'].indexOf(ac) > -1) f.push('lo');
+    else if (['321','239','305','786','954','561','772','407','904','386','850'].indexOf(ac) > -1) f.push('fl');
+    var body = {
+      n:n, p:phone, e:email, c:$('#aCity').value.trim(), f:f,
+      d:new Date().toISOString().slice(0, 10),
+      s:$('#aStatus').value, src:'Phone', calls:[], note:'',
+      u:new Date().toISOString()
+    };
+    var ref = db.collection('walkins').doc();
+    $('#addBtn').disabled = true;
+    ref.set(body).then(function(){
+      ['#aName','#aPhone','#aEmail','#aCity'].forEach(function(s){ $(s).value = ''; });
+      toast('Added ' + n + '.');
+      filter = 'walkin'; page = 0; query = ''; $('#q').value = '';
+      document.querySelectorAll('.chip').forEach(function(c){
+        c.setAttribute('aria-pressed', String(c.getAttribute('data-chip') === 'walkin'));
+      });
+      renderRows();
+    }).catch(function(e){
+      toast(e && e.code === 'invalid_argument' ? 'This link is read-only for you.' : 'Could not add them.');
+    }).then(function(){ $('#addBtn').disabled = !canWrite; });
+  });
+}
+
+function trackFromDoc(d){
+  return {s: typeof d.s === 'string' ? d.s : 'New',
+          src: typeof d.src === 'string' ? d.src : '',
+          c: Array.isArray(d.c) ? d.c.filter(function(x){ return typeof x === 'string'; }) : [],
+          note: typeof d.note === 'string' ? d.note : ''};
+}
+
+async function boot(){
+  rebuildPeople();
+  renderChips();
+  renderSends();
+  wire();
+  wireImport();
+  renderRows();
+  refreshCounts();
+
+  if (!window.claude || !claude.use) { setConn('local'); canWrite = false; applyWritable(); return; }
+
+  try { db = await claude.use('db'); } catch (e) { db = null; }
+  if (!db) { setConn('local'); canWrite = false; applyWritable(); return; }
+
+  try {
+    user = await claude.use('user');
+    if (user) {
+      var w = await user.can('data.write');
+      if (w === false) { canWrite = false; setConn('ro'); } else { setConn('live'); }
+    } else { setConn('live'); }
+  } catch (e) { setConn('live'); }
+  applyWritable();
+
+  try { downloads = await claude.use('downloads'); } catch (e) { downloads = null; }
+
+  var onErr = function(e){
+    if (e && e.code === 'revoked') { canWrite = false; setConn('revoked'); applyWritable(); }
+    else { setConn('ro'); }
+  };
+
+  db.collection('track').onSnapshot(function(snap){
+    snap.docs.forEach(function(d){
+      var body = d.data();
+      if (body) track.set(d.id, trackFromDoc(body));
+    });
+    snap.docChanges().forEach(function(ch){
+      if (ch.type === 'removed') track.delete(ch.doc.id);
+    });
+    rowEls.forEach(function(_v, key){ paintRow(key); });
+    refreshCounts();
+  }, onErr);
+
+  db.collection('sends').onSnapshot(function(snap){
+    snap.docs.forEach(function(d){
+      var body = d.data();
+      if (body) sendState.set(d.id, body);
+    });
+    SENDS.forEach(function(s){ paintSend(s.n); });
+  }, onErr);
+
+  db.collection('roster').onSnapshot(function(snap){
+    var chunks = snap.docs.map(function(d){ return d.data() || {}; })
+      .filter(function(b){ return Array.isArray(b.p); })
+      .sort(function(a, b){ return (a.i || 0) - (b.i || 0); });
+    rosterChunks = chunks.length;
+    var flat = [];
+    chunks.forEach(function(c){
+      c.p.forEach(function(r){
+        if (r && r.k && r.n) flat.push(r);
+      });
+    });
+    ROSTER = flat;
+    $('#setupSub').textContent = ROSTER.length
+      ? ROSTER.length.toLocaleString() + ' people loaded. Choose a file only to replace them.'
+      : 'Load it once. Everyone who opens this link then sees it.';
+    if (ROSTER.length) $('#impBtn').textContent = 'Replace the list';
+    rebuildPeople();
+    renderRows();
+    refreshCounts();
+  }, onErr);
+
+  db.collection('walkins').onSnapshot(function(snap){
+    WALKINS = snap.docs.map(function(d){
+      var b = d.data() || {};
+      return {id:d.id, n:b.n || '(no name)', p:b.p || '', e:b.e || '', c:b.c || '',
+              d:b.d || '', f:Array.isArray(b.f) ? b.f : []};
+    });
+    WALKINS.forEach(function(w){
+      var key = 'w' + w.id;
+      if (!track.has(key)) {
+        var src = snap.docs.filter(function(d){ return d.id === w.id; })[0];
+        var b = src ? src.data() || {} : {};
+        track.set(key, trackFromDoc({s:b.s, src:b.src, c:b.calls, note:b.note}));
+      }
+    });
+    rebuildPeople();
+    renderRows();
+    refreshCounts();
+  }, onErr);
+}
+
+boot();
+</script>
